@@ -22,7 +22,9 @@ class EngineApp {
     // Auto disassembly animation state
     this.isAutoDisassembling = false;
     this.disassemblyDirection = 1; // 1 = exploding, -1 = assembling
-    this.disassemblySpeed = 0.35; // units/sec
+    this.disassemblySpeed = 0.40; // units/sec
+    this.autoExplodePauseTimer = 0;
+    this.targetExplode = null;
 
     // Initialize 3D Scene
     this.initScene();
@@ -301,10 +303,13 @@ class EngineApp {
     const explodeSlider = document.getElementById('explode-slider');
     const explodeValue = document.getElementById('explode-value');
     const btnAutoExplode = document.getElementById('btn-auto-explode');
+    const btnAssemble = document.getElementById('btn-assemble');
+    const btnExplode = document.getElementById('btn-explode');
 
     if (explodeSlider) {
       explodeSlider.addEventListener('input', (e) => {
         this.isAutoDisassembling = false;
+        this.targetExplode = null;
         if (btnAutoExplode) btnAutoExplode.classList.remove('active');
         const factor = parseFloat(e.target.value) / 100;
         this.engineModel.setExplodeFactor(factor);
@@ -314,8 +319,27 @@ class EngineApp {
 
     if (btnAutoExplode) {
       btnAutoExplode.addEventListener('click', () => {
+        this.targetExplode = null;
         this.isAutoDisassembling = !this.isAutoDisassembling;
         btnAutoExplode.classList.toggle('active', this.isAutoDisassembling);
+        this.audio.playMechanicalClick();
+      });
+    }
+
+    if (btnAssemble) {
+      btnAssemble.addEventListener('click', () => {
+        this.isAutoDisassembling = false;
+        if (btnAutoExplode) btnAutoExplode.classList.remove('active');
+        this.animateExplodeTo(0.0);
+        this.audio.playMechanicalClick();
+      });
+    }
+
+    if (btnExplode) {
+      btnExplode.addEventListener('click', () => {
+        this.isAutoDisassembling = false;
+        if (btnAutoExplode) btnAutoExplode.classList.remove('active');
+        this.animateExplodeTo(1.0);
         this.audio.playMechanicalClick();
       });
     }
@@ -482,25 +506,51 @@ class EngineApp {
     }
   }
 
+  animateExplodeTo(target) {
+    this.targetExplode = Math.max(0, Math.min(1, target));
+  }
+
   render(time, frame) {
     const delta = Math.min(this.clock.getDelta(), 0.1);
 
-    // Auto disassembly animation
-    if (this.isAutoDisassembling) {
-      let f = this.engineModel.explodeFactor + this.disassemblyDirection * this.disassemblySpeed * delta;
-      if (f >= 1.0) {
-        f = 1.0;
-        this.disassemblyDirection = -1; // reverse to assemble
-      } else if (f <= 0.0) {
-        f = 0.0;
-        this.disassemblyDirection = 1; // reverse to disassemble
+    // 1. Direct Target Explode / Assemble Animation (Button clicks)
+    if (this.targetExplode !== null && this.targetExplode !== undefined) {
+      const current = this.engineModel.explodeFactor;
+      const dir = this.targetExplode > current ? 1 : -1;
+      const step = 0.75 * delta; // Smooth ~1.3s full sweep
+      let next = current + dir * step;
+      if ((dir === 1 && next >= this.targetExplode) || (dir === -1 && next <= this.targetExplode)) {
+        next = this.targetExplode;
+        this.targetExplode = null;
       }
-      this.engineModel.setExplodeFactor(f);
+      this.engineModel.setExplodeFactor(next);
 
       const explodeSlider = document.getElementById('explode-slider');
       const explodeValue = document.getElementById('explode-value');
-      if (explodeSlider) explodeSlider.value = Math.round(f * 100);
-      if (explodeValue) explodeValue.innerText = Math.round(f * 100) + '%';
+      if (explodeSlider) explodeSlider.value = Math.round(next * 100);
+      if (explodeValue) explodeValue.innerText = Math.round(next * 100) + '%';
+    } else if (this.isAutoDisassembling) {
+      // 2. Auto Continuous Disassembly / Assembly Loop with End-State Pauses
+      if (this.autoExplodePauseTimer > 0) {
+        this.autoExplodePauseTimer -= delta;
+      } else {
+        let f = this.engineModel.explodeFactor + this.disassemblyDirection * this.disassemblySpeed * delta;
+        if (f >= 1.0) {
+          f = 1.0;
+          this.disassemblyDirection = -1; // reverse to assemble
+          this.autoExplodePauseTimer = 0.8; // pause 0.8s at 100%
+        } else if (f <= 0.0) {
+          f = 0.0;
+          this.disassemblyDirection = 1; // reverse to explode
+          this.autoExplodePauseTimer = 0.8; // pause 0.8s at 0%
+        }
+        this.engineModel.setExplodeFactor(f);
+
+        const explodeSlider = document.getElementById('explode-slider');
+        const explodeValue = document.getElementById('explode-value');
+        if (explodeSlider) explodeSlider.value = Math.round(f * 100);
+        if (explodeValue) explodeValue.innerText = Math.round(f * 100) + '%';
+      }
     }
 
     // Update kinematics

@@ -1474,41 +1474,112 @@ export class EngineModel {
     exhaustSeat.position.set(0.21, headBaseY - 0.01, 0);
     this.cylinderHeadGroup.add(exhaustSeat);
 
-    // ---- Canted Valve Guide Boss Towers ----
-    const intakeTower = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.10, 0.12, 0.60, 24),
-      headMat
-    );
-    intakeTower.rotation.z = 0.38;
-    intakeTower.position.set(-0.26, headBaseY + headH * 0.55, 0);
-    this.cylinderHeadGroup.add(intakeTower);
-
-    const exhaustTower = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.10, 0.12, 0.60, 24),
-      headMat
-    );
-    exhaustTower.rotation.z = -0.38;
-    exhaustTower.position.set(0.26, headBaseY + headH * 0.55, 0);
-    this.cylinderHeadGroup.add(exhaustTower);
-
-    // ---- Port Runners ----
-    // Intake port (left, angled upward)
-    const intakePort = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.17, 0.17, 0.55, 24),
-      headMat
-    );
-    intakePort.rotation.z = Math.PI / 3;
-    intakePort.position.set(-0.54, headBaseY + headH * 0.65, 0);
+    // ---- Precision Port Runners (Flow ducts located underneath spring pockets) ----
+    // 1. Intake Port Duct (Left cross-flow runner sweeping to intake seat)
+    const intakeRunnerCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-0.78, headBaseY + 0.28, 0),
+      new THREE.Vector3(-0.54, headBaseY + 0.20, 0),
+      new THREE.Vector3(-0.35, headBaseY + 0.10, 0),
+      new THREE.Vector3(-0.21, headBaseY + 0.01, 0)
+    ]);
+    const intakePortGeom = new THREE.TubeGeometry(intakeRunnerCurve, 24, 0.115, 16, false);
+    const intakePort = new THREE.Mesh(intakePortGeom, headMat);
     this.cylinderHeadGroup.add(intakePort);
 
-    // Exhaust port (right, angled upward — slightly smaller bore)
-    const exhaustPort = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.15, 0.15, 0.55, 24),
+    // Intake runner inner bore (hollow flow passage)
+    const intakeBoreGeom = new THREE.TubeGeometry(intakeRunnerCurve, 24, 0.088, 16, false);
+    const intakeBore = new THREE.Mesh(intakeBoreGeom, this.materials.cavity);
+    this.cylinderHeadGroup.add(intakeBore);
+
+    // Intake manifold mounting flange on exterior head wall
+    const intakeFlange = new THREE.Mesh(
+      new THREE.BoxGeometry(0.04, 0.32, 0.28),
       headMat
     );
-    exhaustPort.rotation.z = -Math.PI / 3;
-    exhaustPort.position.set(0.54, headBaseY + headH * 0.65, 0);
+    intakeFlange.position.set(-0.78, headBaseY + 0.28, 0);
+    this.cylinderHeadGroup.add(intakeFlange);
+
+    // Manifold mounting studs
+    [[-0.11, -0.09], [-0.11, 0.09], [0.11, -0.09], [0.11, 0.09]].forEach(([yOff, zOff]) => {
+      const stud = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.018, 0.018, 0.08, 12),
+        this.materials.bolts
+      );
+      stud.rotation.z = Math.PI / 2;
+      stud.position.set(-0.80, headBaseY + 0.28 + yOff, zOff);
+      this.cylinderHeadGroup.add(stud);
+    });
+
+    // 2. Exhaust Port Duct (Right cross-flow runner sweeping from exhaust seat to header)
+    const exhaustRunnerCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0.21, headBaseY + 0.01, 0),
+      new THREE.Vector3(0.35, headBaseY + 0.10, 0),
+      new THREE.Vector3(0.54, headBaseY + 0.20, 0),
+      new THREE.Vector3(0.78, headBaseY + 0.28, 0)
+    ]);
+    const exhaustPortGeom = new THREE.TubeGeometry(exhaustRunnerCurve, 24, 0.105, 16, false);
+    const exhaustPort = new THREE.Mesh(exhaustPortGeom, headMat);
     this.cylinderHeadGroup.add(exhaustPort);
+
+    // Exhaust runner inner bore
+    const exhaustBoreGeom = new THREE.TubeGeometry(exhaustRunnerCurve, 24, 0.080, 16, false);
+    const exhaustBore = new THREE.Mesh(exhaustBoreGeom, this.materials.cavity);
+    this.cylinderHeadGroup.add(exhaustBore);
+
+    // Exhaust header mounting flange on exterior head wall
+    const exhaustFlange = new THREE.Mesh(
+      new THREE.BoxGeometry(0.04, 0.30, 0.26),
+      headMat
+    );
+    exhaustFlange.position.set(0.78, headBaseY + 0.28, 0);
+    this.cylinderHeadGroup.add(exhaustFlange);
+
+    // Header mounting studs
+    [[-0.10, -0.08], [-0.10, 0.08], [0.10, -0.08], [0.10, 0.08]].forEach(([yOff, zOff]) => {
+      const stud = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.018, 0.018, 0.08, 12),
+        this.materials.bolts
+      );
+      stud.rotation.z = Math.PI / 2;
+      stud.position.set(0.80, headBaseY + 0.28 + yOff, zOff);
+      this.cylinderHeadGroup.add(stud);
+    });
+
+    // ---- Precision Bronze Valve Guides & Lower Spring Seat Washers ----
+    // Sits underneath the valve spring, guiding the valve stem through the port roof
+    const vCant = 0.38;
+    const intakeGuide = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.048, 0.048, 0.26, 16),
+      this.materials.bushing // phosphor bronze
+    );
+    intakeGuide.rotation.z = vCant;
+    intakeGuide.position.set(-0.21 - 0.14 * Math.sin(vCant), headBaseY + 0.14 * Math.cos(vCant), 0);
+    this.cylinderHeadGroup.add(intakeGuide);
+
+    const exhaustGuide = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.048, 0.048, 0.26, 16),
+      this.materials.bushing
+    );
+    exhaustGuide.rotation.z = -vCant;
+    exhaustGuide.position.set(0.21 + 0.14 * Math.sin(vCant), headBaseY + 0.14 * Math.cos(vCant), 0);
+    this.cylinderHeadGroup.add(exhaustGuide);
+
+    // Lower spring seat washers (recessed spring locator base)
+    const intakeSpringSeat = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.095, 0.095, 0.016, 24),
+      this.materials.bolts
+    );
+    intakeSpringSeat.rotation.z = vCant;
+    intakeSpringSeat.position.set(-0.21 - 0.25 * Math.sin(vCant), headBaseY + 0.25 * Math.cos(vCant), 0);
+    this.cylinderHeadGroup.add(intakeSpringSeat);
+
+    const exhaustSpringSeat = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.095, 0.095, 0.016, 24),
+      this.materials.bolts
+    );
+    exhaustSpringSeat.rotation.z = -vCant;
+    exhaustSpringSeat.position.set(0.21 + 0.25 * Math.sin(vCant), headBaseY + 0.25 * Math.cos(vCant), 0);
+    this.cylinderHeadGroup.add(exhaustSpringSeat);
 
     this.root.add(this.cylinderHeadGroup);
 
@@ -1620,10 +1691,10 @@ export class EngineModel {
 
     const camY = headBaseY + 0.90;   // 3.45
 
-    // Intake camshaft (left, over intake valve bucket)
+    // Intake camshaft (left, centered directly over intake valve bucket)
     this.intakeCamshaftGroup = new THREE.Group();
     this.intakeCamshaftGroup.name = 'Intake_Camshaft';
-    this.intakeCamshaftGroup.position.set(-0.52, camY, 0);
+    this.intakeCamshaftGroup.position.set(-0.566, camY, 0);
 
     const intakeShaft = new THREE.Mesh(
       new THREE.CylinderGeometry(0.070, 0.070, 1.20, 24),
@@ -1632,18 +1703,18 @@ export class EngineModel {
     intakeShaft.rotation.x = Math.PI / 2;
     this.intakeCamshaftGroup.add(intakeShaft);
 
-    // Cam lobe (egg-shaped profile)
+    // Cam lobe (egg-shaped profile: base circle R=0.080, nose R=0.22, lift = 0.14)
     const buildCamLobe = (group) => {
       const lobeShape = new THREE.Shape();
-      lobeShape.absarc(0, 0, 0.070, 0, Math.PI, false);
-      lobeShape.lineTo(0.050, -0.15);
-      lobeShape.quadraticCurveTo(0, -0.21, -0.050, -0.15);
+      lobeShape.absarc(0, 0, 0.080, 0, Math.PI, false);
+      lobeShape.lineTo(0.052, -0.14);
+      lobeShape.quadraticCurveTo(0, -0.22, -0.052, -0.14);
       lobeShape.closePath();
       const lobeGeom = new THREE.ExtrudeGeometry(lobeShape, {
-        depth: 0.11, bevelEnabled: true, bevelSize: 0.012
+        depth: 0.12, bevelEnabled: true, bevelSize: 0.010, bevelThickness: 0.010
       });
       const lobe = new THREE.Mesh(lobeGeom, this.materials.crankshaft);
-      lobe.position.z = -0.055;
+      lobe.position.z = -0.06;
       group.add(lobe);
     };
     buildCamLobe(this.intakeCamshaftGroup);
@@ -1659,10 +1730,10 @@ export class EngineModel {
 
     this.camshaftGroup.add(this.intakeCamshaftGroup);
 
-    // Exhaust camshaft (right, over exhaust valve bucket)
+    // Exhaust camshaft (right, centered directly over exhaust valve bucket)
     this.exhaustCamshaftGroup = new THREE.Group();
     this.exhaustCamshaftGroup.name = 'Exhaust_Camshaft';
-    this.exhaustCamshaftGroup.position.set(0.52, camY, 0);
+    this.exhaustCamshaftGroup.position.set(0.566, camY, 0);
 
     const exhaustShaft = new THREE.Mesh(
       new THREE.CylinderGeometry(0.070, 0.070, 1.20, 24),
@@ -1684,9 +1755,9 @@ export class EngineModel {
 
     this.camshaftGroup.add(this.exhaustCamshaftGroup);
 
-    // Timing chain link (connects both cam sprockets)
+    // Timing chain link (connects both cam sprockets across center-to-center distance)
     const timingLink = new THREE.Mesh(
-      new THREE.BoxGeometry(1.04, 0.030, 0.035),
+      new THREE.BoxGeometry(1.132, 0.030, 0.035),
       this.materials.bolts
     );
     timingLink.position.set(0, camY + 0.18, 0.56);
@@ -1975,12 +2046,12 @@ export class EngineModel {
       this.materials.combustionGas.opacity = Math.max(0, 0.70 * (1 - this.explodeFactor * 2.2));
     }
 
-    // 5. DOHC Camshafts (1/2 crank speed, phased to valve timing)
+    // 5. DOHC Camshafts (1/2 crank speed, perfectly synchronized to valve bucket contact)
     if (this.intakeCamshaftGroup) {
-      this.intakeCamshaftGroup.rotation.z = -theta * 0.5 + Math.PI * 0.25;
+      this.intakeCamshaftGroup.rotation.z = -theta * 0.5 + (Math.PI / 4 - vAng);
     }
     if (this.exhaustCamshaftGroup) {
-      this.exhaustCamshaftGroup.rotation.z = -theta * 0.5 + Math.PI * 1.25;
+      this.exhaustCamshaftGroup.rotation.z = -theta * 0.5 + (1.75 * Math.PI + vAng);
     }
 
     // 6. Spark Plug Arc Plasma
