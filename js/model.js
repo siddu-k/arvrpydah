@@ -530,7 +530,7 @@ export class EngineModel {
 
     this.parts.crankshaft = {
       group: this.crankshaftGroup,
-      explodeOffset: new THREE.Vector3(0, -0.9, -1.1),
+      explodeOffset: new THREE.Vector3(0, -0.5, -1.2),
       name: 'Sickle Counterweight Crankshaft',
       specs: 'Stroke: 88 mm | Main Journal: Ø44 mm | Crankpin: Ø38 mm | Nitrided 4340 Steel'
     };
@@ -682,7 +682,7 @@ export class EngineModel {
     };
     this.parts.rodCap = {
       group: this.rodCapGroup,
-      explodeOffset: new THREE.Vector3(0, -0.75, 0),
+      explodeOffset: new THREE.Vector3(0, -0.45, 0),
       name: 'Split Rod Bearing Cap & 12-Pt Bolts',
       specs: 'ARP 2000 Grade 12.9 M9×1.0 | Clamping Load: 52 kN'
     };
@@ -1380,7 +1380,7 @@ export class EngineModel {
 
     this.parts.oilPan = {
       group: this.oilPanGroup,
-      explodeOffset: new THREE.Vector3(0, -1.8, 0),
+      explodeOffset: new THREE.Vector3(0, -1.0, 0),
       name: 'Cast Aluminum Finned Sump',
       specs: 'A356-T6 Aluminum | 11 Longitudinal Cooling Fins | M14 Magnetic Drain Plug | 3.8L Sump'
     };

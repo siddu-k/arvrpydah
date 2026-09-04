@@ -58,13 +58,13 @@ class EngineApp {
     });
     this.floor = new THREE.Mesh(floorGeom, this.floorMat);
     this.floor.rotation.x = -Math.PI / 2;
-    this.floor.position.y = -1.2;
+    this.floor.position.y = -2.60;
     this.floor.receiveShadow = true;
     this.scene.add(this.floor);
 
     // Floor grid (Shadcn Dark defaults)
     this.grid = new THREE.GridHelper(16, 32, 0x27272a, 0x27272a);
-    this.grid.position.y = -1.19;
+    this.grid.position.y = -2.59;
     this.grid.material.opacity = 0.35;
     this.grid.material.transparent = true;
     this.scene.add(this.grid);
@@ -185,10 +185,18 @@ class EngineApp {
   initRaycasting() {
     this.raycaster = new THREE.Raycaster();
     this.mouse = new THREE.Vector2();
+    let downPos = { x: 0, y: 0 };
 
     this.renderer.domElement.addEventListener('pointerdown', (e) => {
-      // Raycast only if clicking on canvas
+      downPos.x = e.clientX;
+      downPos.y = e.clientY;
+    });
+
+    this.renderer.domElement.addEventListener('pointerup', (e) => {
       if (e.target !== this.renderer.domElement) return;
+      // Prevent triggering focus if user was orbit dragging
+      const dist = Math.hypot(e.clientX - downPos.x, e.clientY - downPos.y);
+      if (dist > 6) return;
 
       const rect = this.renderer.domElement.getBoundingClientRect();
       this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
@@ -215,12 +223,8 @@ class EngineApp {
           hitObj = hitObj.parent;
         }
 
-        if (matchedPart) {
-          this.showPartInspection(matchedPart);
-          document.querySelectorAll('.component-item').forEach(item => {
-            item.classList.toggle('active', item.dataset.part === matchedKey);
-          });
-          this.audio.playMechanicalClick();
+        if (matchedKey) {
+          this.focusOnPart(matchedKey);
         }
       }
     });
@@ -430,29 +434,44 @@ class EngineApp {
 
   /* ================================================================
      DIRECT 3D COMPONENT FOCUS & SPEC INSPECTION
-     Animates camera to frame the selected component and opens spec card.
+     Animates camera to frame the selected component dynamically based
+     on its current world position (supports exploded view framing).
      ================================================================ */
   focusOnPart(partKey) {
-    const partViews = {
-      crankshaft: { target: new THREE.Vector3(0, 0, 0), camera: new THREE.Vector3(0.65, 0.3, 2.0) },
-      conRod: { target: new THREE.Vector3(0, 0.85, 0), camera: new THREE.Vector3(0.35, 0.95, 1.7) },
-      rodCap: { target: new THREE.Vector3(0, 0.05, 0), camera: new THREE.Vector3(0.4, 0.15, 1.6) },
-      piston: { target: new THREE.Vector3(0, 1.75, 0), camera: new THREE.Vector3(0.4, 1.9, 1.5) },
-      wristPin: { target: new THREE.Vector3(0, 1.45, 0), camera: new THREE.Vector3(0.35, 1.5, 1.4) },
-      rings: { target: new THREE.Vector3(0, 1.85, 0), camera: new THREE.Vector3(0.3, 1.95, 1.3) },
-      block: { target: new THREE.Vector3(0, 1.25, 0), camera: new THREE.Vector3(1.6, 1.4, 2.5) },
-      oilPan: { target: new THREE.Vector3(0, -0.65, 0), camera: new THREE.Vector3(1.1, -0.45, 1.9) },
-      cylinderHead: { target: new THREE.Vector3(0, 2.95, 0), camera: new THREE.Vector3(1.1, 3.2, 1.9) },
-      camshaft: { target: new THREE.Vector3(0, 3.52, 0), camera: new THREE.Vector3(0.2, 4.0, 1.6) },
-      intakeValve: { target: new THREE.Vector3(-0.35, 2.95, 0), camera: new THREE.Vector3(-0.65, 3.25, 1.3) },
-      exhaustValve: { target: new THREE.Vector3(0.35, 2.95, 0), camera: new THREE.Vector3(0.65, 3.25, 1.3) },
-      sparkPlug: { target: new THREE.Vector3(0, 3.0, 0), camera: new THREE.Vector3(0.0, 3.5, 1.3) }
-    };
+    const part = this.engineModel.parts[partKey];
+    if (!part) return;
 
-    const view = partViews[partKey];
-    if (view) {
-      this.animateCamera(view.camera, view.target);
+    // Compute dynamic bounding box and world center of the part
+    const group = part.group;
+    group.updateWorldMatrix(true, true);
+    const aabb = new THREE.Box3().setFromObject(group);
+
+    let target = new THREE.Vector3();
+    let camPos = new THREE.Vector3();
+
+    if (!aabb.isEmpty()) {
+      aabb.getCenter(target);
+      const size = new THREE.Vector3();
+      aabb.getSize(size);
+      const maxDim = Math.max(size.x, size.y, size.z, 0.45);
+      
+      // Calculate framing distance
+      const fov = (this.camera.fov * Math.PI) / 180;
+      const distance = (maxDim / 2) / Math.tan(fov / 2) * 1.6;
+
+      // Preserve existing viewing angle offset direction
+      const dir = this.camera.position.clone().sub(this.controls.target).normalize();
+      if (dir.lengthSq() < 0.01) dir.set(0.6, 0.4, 0.7).normalize();
+
+      camPos.copy(target).add(dir.multiplyScalar(Math.max(distance, 1.2)));
+      camPos.y = Math.max(camPos.y, target.y + 0.15);
+    } else {
+      // Fallback if group has no geometry
+      target = group.getWorldPosition(new THREE.Vector3());
+      camPos = target.clone().add(new THREE.Vector3(0.6, 0.35, 1.5));
     }
+
+    this.animateCamera(camPos, target);
 
     // Highlight active item in side panel
     document.querySelectorAll('.component-item').forEach((item) => {
@@ -460,10 +479,7 @@ class EngineApp {
     });
 
     // Display technical specification popover
-    const part = this.engineModel.parts[partKey];
-    if (part) {
-      this.showPartInspection(part);
-    }
+    this.showPartInspection(part);
 
     this.audio.playMechanicalClick();
   }
