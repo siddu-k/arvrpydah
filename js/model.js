@@ -529,7 +529,7 @@ export class EngineModel {
 
     this.parts.crankshaft = {
       group: this.crankshaftGroup,
-      explodeOffset: new THREE.Vector3(0, -1.4, -0.6),
+      explodeOffset: new THREE.Vector3(0, -0.9, -1.1),
       name: 'Sickle Counterweight Crankshaft',
       specs: 'Stroke: 88 mm | Main Journal: Ø44 mm | Crankpin: Ø38 mm | Nitrided 4340 Steel'
     };
@@ -675,13 +675,13 @@ export class EngineModel {
 
     this.parts.conRod = {
       group: this.conRodGroup,
-      explodeOffset: new THREE.Vector3(-0.9, 0, 0),
+      explodeOffset: new THREE.Vector3(-1.4, 0, 0),
       name: 'Tapered H-Beam Connecting Rod',
       specs: 'C–C: 138 mm | Big End Bore: Ø38 mm | Small End Bore: Ø24 mm | Forged 4340'
     };
     this.parts.rodCap = {
       group: this.rodCapGroup,
-      explodeOffset: new THREE.Vector3(0, -0.65, 0),
+      explodeOffset: new THREE.Vector3(0, -0.75, 0),
       name: 'Split Rod Bearing Cap & 12-Pt Bolts',
       specs: 'ARP 2000 Grade 12.9 M9×1.0 | Clamping Load: 52 kN'
     };
@@ -868,7 +868,7 @@ export class EngineModel {
 
     this.parts.piston = {
       group: this.pistonGroup,
-      explodeOffset: new THREE.Vector3(0, 1.4, 0),
+      explodeOffset: new THREE.Vector3(0, 1.6, 0),
       name: 'CNC Forged Slipper Piston',
       specs: 'Bore: 85.0 mm | Compression Height: 32 mm | Slipper Skirt | 2618-T6 Al'
     };
@@ -880,7 +880,7 @@ export class EngineModel {
     };
     this.parts.rings = {
       group: this.ringsGroup,
-      explodeOffset: new THREE.Vector3(0.7, 0.5, 0),
+      explodeOffset: new THREE.Vector3(0.8, 0.4, 0),
       name: 'Chrome Piston Ring Pack',
       specs: 'Top: 1.2 mm Gas-Nitrided | 2nd: 1.2 mm Napier | Oil: 2.0 mm 3-Piece'
     };
@@ -1162,7 +1162,7 @@ export class EngineModel {
 
     this.parts.block = {
       group: this.engineBlockGroup,
-      explodeOffset: new THREE.Vector3(1.6, 0, 1.0),
+      explodeOffset: new THREE.Vector3(1.8, 0, 0),
       name: 'Liquid-Cooled Deep-Skirt Engine Block',
       specs: 'A356-T6 Aluminum | 4-Bolt Cross-Bolted Mains | Cast Sleeve | MLS Deck Ring'
     };
@@ -1379,7 +1379,7 @@ export class EngineModel {
 
     this.parts.oilPan = {
       group: this.oilPanGroup,
-      explodeOffset: new THREE.Vector3(0, -1.2, 0),
+      explodeOffset: new THREE.Vector3(0, -1.8, 0),
       name: 'Cast Aluminum Finned Sump',
       specs: 'A356-T6 Aluminum | 11 Longitudinal Cooling Fins | M14 Magnetic Drain Plug | 3.8L Sump'
     };
@@ -1514,7 +1514,7 @@ export class EngineModel {
 
     this.parts.cylinderHead = {
       group: this.cylinderHeadGroup,
-      explodeOffset: new THREE.Vector3(0, 1.8, 0),
+      explodeOffset: new THREE.Vector3(0, 1.9, 0),
       name: 'Pent-Roof DOHC Cylinder Head',
       specs: 'MLS Gasket | Canted Valve Guides | Hardened Seat Inserts | Cross-Flow Ports'
     };
@@ -1696,19 +1696,19 @@ export class EngineModel {
 
     this.parts.intakeValve = {
       group: this.intakeValveGroup,
-      explodeOffset: new THREE.Vector3(-0.65, 1.2, 0),
+      explodeOffset: new THREE.Vector3(-0.9, 1.3, 0),
       name: 'Canted Intake Valve & Bucket Tappet',
       specs: 'Head: Ø36 mm | Cant: 22° | SS 21-4N | Inverted Bucket Follower'
     };
     this.parts.exhaustValve = {
       group: this.exhaustValveGroup,
-      explodeOffset: new THREE.Vector3(0.65, 1.2, 0),
+      explodeOffset: new THREE.Vector3(0.9, 1.3, 0),
       name: 'Canted Exhaust Valve & Bucket Tappet',
       specs: 'Head: Ø31 mm | Cant: 22° | Inconel 751 Superalloy'
     };
     this.parts.camshaft = {
       group: this.camshaftGroup,
-      explodeOffset: new THREE.Vector3(0, 1.5, -0.8),
+      explodeOffset: new THREE.Vector3(0, 2.0, -0.9),
       name: 'Dual Overhead Camshafts (DOHC)',
       specs: 'Dual Billet Shafts | 264° Duration | 10.5 mm Peak Lift'
     };
@@ -1827,7 +1827,7 @@ export class EngineModel {
 
     this.parts.sparkPlug = {
       group: this.sparkPlugGroup,
-      explodeOffset: new THREE.Vector3(0, 2.2, 0),
+      explodeOffset: new THREE.Vector3(0, 2.7, 0),
       name: 'Iridium IX Racing Spark Plug',
       specs: 'Electrode: 0.6 mm Iridium | Gap: 0.8 mm | Thread: M14×1.25'
     };
@@ -1845,7 +1845,7 @@ export class EngineModel {
   }
 
   /* ================================================================
-     EXPLODED VIEW
+     PRECISION STAGED ASSEMBLY / EXPLODED VIEW
      ================================================================ */
   registerExplodeOffsets() {
     for (const key in this.parts) {
@@ -1857,17 +1857,49 @@ export class EngineModel {
 
   setExplodeFactor(factor) {
     this.explodeFactor = Math.max(0, Math.min(1, factor));
+    const f = this.explodeFactor;
+
+    // Realistic mechanical disassembly schedule [start, end]
+    // Parts peel away in true automotive engineering assembly order
+    const sequenceMap = {
+      sparkPlug:    [0.00, 0.35],
+      oilPan:       [0.00, 0.45],
+      camshaft:     [0.06, 0.48],
+      intakeValve:  [0.10, 0.52],
+      exhaustValve: [0.10, 0.52],
+      rodCap:       [0.12, 0.55],
+      cylinderHead: [0.18, 0.68],
+      block:        [0.26, 0.82],
+      piston:       [0.34, 0.82],
+      conRod:       [0.36, 0.88],
+      crankshaft:   [0.30, 0.85],
+      wristPin:     [0.52, 0.95],
+      rings:        [0.52, 0.95]
+    };
+
     for (const key in this.parts) {
       const part = this.parts[key];
       if (part.explodeOffset) {
-        const targetPos = part.basePos.clone().add(
-          part.explodeOffset.clone().multiplyScalar(this.explodeFactor)
-        );
+        const [tStart, tEnd] = sequenceMap[key] || [0, 1];
+        let localT = 0;
+        if (f <= tStart) {
+          localT = 0;
+        } else if (f >= tEnd) {
+          localT = 1;
+        } else {
+          const raw = (f - tStart) / (tEnd - tStart);
+          // Smooth S-curve easing: 3*t^2 - 2*t^3
+          localT = raw * raw * (3 - 2 * raw);
+        }
+
+        part.currentLocalT = localT;
+        const currentOffset = part.explodeOffset.clone().multiplyScalar(localT);
+
         if (key === 'piston' || key === 'conRod' || key === 'rodCap' ||
             key === 'intakeValve' || key === 'exhaustValve') {
-          part.currentExplodeOffset = part.explodeOffset.clone().multiplyScalar(this.explodeFactor);
+          part.currentExplodeOffset = currentOffset;
         } else {
-          part.group.position.copy(targetPos);
+          part.group.position.copy(part.basePos.clone().add(currentOffset));
         }
       }
     }
@@ -1880,15 +1912,16 @@ export class EngineModel {
     const theta = this.kinematics.crankAngle;
     const explodeT = this.explodeFactor;
 
-    // 1. Crankshaft Rotation
+    // 1. Crankshaft Rotation & Staged Translation
     this.crankshaftGroup.rotation.z = -theta;
     if (this.parts.crankshaft) {
       const bp = this.parts.crankshaft.basePos.clone();
-      const eo = this.parts.crankshaft.explodeOffset.clone().multiplyScalar(explodeT);
+      const localT = this.parts.crankshaft.currentLocalT !== undefined ? this.parts.crankshaft.currentLocalT : explodeT;
+      const eo = this.parts.crankshaft.explodeOffset.clone().multiplyScalar(localT);
       this.crankshaftGroup.position.copy(bp.add(eo));
     }
 
-    // 2. Connecting Rod Position & Tilt
+    // 2. Connecting Rod Position, Tilt & Rod Cap Separation
     const crankPin = kinematicsState.crankPinPos;
     const conRodTilt = kinematicsState.conRodAngle;
     const conRodExp = this.parts.conRod.currentExplodeOffset || new THREE.Vector3();
@@ -1900,7 +1933,12 @@ export class EngineModel {
     );
     this.conRodGroup.rotation.z = conRodTilt;
 
-    // 3. Piston Reciprocation
+    if (this.parts.rodCap && this.rodCapGroup) {
+      const rodCapExp = this.parts.rodCap.currentExplodeOffset || new THREE.Vector3();
+      this.rodCapGroup.position.set(rodCapExp.x, rodCapExp.y, rodCapExp.z);
+    }
+
+    // 3. Piston Reciprocation & Staged Lift
     const pistonPos = kinematicsState.pistonPos;
     const pistonExp = this.parts.piston.currentExplodeOffset || new THREE.Vector3();
 
@@ -1931,6 +1969,11 @@ export class EngineModel {
     );
     const exhaustSpringScale = 1 - kinematicsState.exhaustValveLift * 0.3;
     this.exhaustSpringMesh.scale.set(1, Math.max(0.65, exhaustSpringScale), 1);
+
+    // Fade combustion gas volume as chamber disassembles
+    if (this.materials.combustionGas) {
+      this.materials.combustionGas.opacity = Math.max(0, 0.70 * (1 - this.explodeFactor * 2.2));
+    }
 
     // 5. DOHC Camshafts (1/2 crank speed, phased to valve timing)
     if (this.intakeCamshaftGroup) {

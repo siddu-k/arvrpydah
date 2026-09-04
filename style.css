@@ -224,6 +224,22 @@ html, body {
   height: 32px;
 }
 
+.explode-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.btn-explode-action {
+  flex: 1;
+  height: 28px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  padding: 0 8px;
+  text-transform: uppercase;
+}
+
 /* ==========================================================================
    MAIN DASHBOARD (LEFT & RIGHT PANELS WITH MAXIMIZED WHITESPACE)
    ========================================================================== */
