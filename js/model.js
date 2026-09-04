@@ -38,6 +38,7 @@ export class EngineModel {
     this.crankR = kinematics.crankRadius;       // 0.44
     this.conRodL = kinematics.conRodLength;     // 1.38
     this.wristPinH = kinematics.wristPinHeight; // 0.32
+    this.valveAngle = 0.38;                     // ~21.8° cant angle
 
     this.createBrushedTextures();
     this.setupClippingPlanes();
@@ -1564,13 +1565,13 @@ export class EngineModel {
     exhaustGuide.position.set(0.21 + 0.14 * Math.sin(vCant), headBaseY + 0.14 * Math.cos(vCant), 0);
     this.cylinderHeadGroup.add(exhaustGuide);
 
-    // Lower spring seat washers (recessed spring locator base)
+    // Lower spring seat washers (recessed spring locator base flush under spring coils)
     const intakeSpringSeat = new THREE.Mesh(
       new THREE.CylinderGeometry(0.095, 0.095, 0.016, 24),
       this.materials.bolts
     );
     intakeSpringSeat.rotation.z = vCant;
-    intakeSpringSeat.position.set(-0.21 - 0.25 * Math.sin(vCant), headBaseY + 0.25 * Math.cos(vCant), 0);
+    intakeSpringSeat.position.set(-0.21 - 0.37 * Math.sin(vCant), headBaseY + 0.37 * Math.cos(vCant), 0);
     this.cylinderHeadGroup.add(intakeSpringSeat);
 
     const exhaustSpringSeat = new THREE.Mesh(
@@ -1578,7 +1579,7 @@ export class EngineModel {
       this.materials.bolts
     );
     exhaustSpringSeat.rotation.z = -vCant;
-    exhaustSpringSeat.position.set(0.21 + 0.25 * Math.sin(vCant), headBaseY + 0.25 * Math.cos(vCant), 0);
+    exhaustSpringSeat.position.set(0.21 + 0.37 * Math.sin(vCant), headBaseY + 0.37 * Math.cos(vCant), 0);
     this.cylinderHeadGroup.add(exhaustSpringSeat);
 
     this.root.add(this.cylinderHeadGroup);
@@ -1602,44 +1603,50 @@ export class EngineModel {
     this.intakeValveGroup = new THREE.Group();
     this.intakeValveGroup.name = 'IntakeValve_Assembly';
 
-    // Valve head (tulip shape)
+    // Stationary on head: dual valve spring
+    this.intakeSpringMesh = this.createValveSpring(this.materials.spring);
+    this.intakeSpringMesh.position.y = 0.38;
+    this.intakeValveGroup.add(this.intakeSpringMesh);
+
+    // Reciprocating valve components (slides straight along stem axis)
+    this.intakeMovingGroup = new THREE.Group();
+    this.intakeMovingGroup.name = 'Intake_Moving_Components';
+
+    // Valve head (tulip shape, sits flush inside valve seat at y = 0)
     const intakeHead = new THREE.Mesh(
       new THREE.ConeGeometry(0.20, 0.06, 32),
       this.materials.valveIntake
     );
     intakeHead.rotation.x = Math.PI;
-    this.intakeValveGroup.add(intakeHead);
+    this.intakeMovingGroup.add(intakeHead);
 
     // Valve stem
     const intakeStem = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.032, 0.032, 1.00, 16),
+      new THREE.CylinderGeometry(0.032, 0.032, 0.98, 16),
       this.materials.valveIntake
     );
-    intakeStem.position.y = 0.50;
-    this.intakeValveGroup.add(intakeStem);
+    intakeStem.position.y = 0.49;
+    this.intakeMovingGroup.add(intakeStem);
 
-    // Dual valve spring
-    this.intakeSpringMesh = this.createValveSpring(this.materials.spring);
-    this.intakeSpringMesh.position.y = 0.40;
-    this.intakeValveGroup.add(this.intakeSpringMesh);
-
-    // Titanium retainer
+    // Titanium retainer (clamps spring top)
     const intakeRetainer = new THREE.Mesh(
       new THREE.CylinderGeometry(0.10, 0.075, 0.045, 24),
       this.materials.retainer
     );
-    intakeRetainer.position.y = 0.90;
-    this.intakeValveGroup.add(intakeRetainer);
+    intakeRetainer.position.y = 0.82;
+    this.intakeMovingGroup.add(intakeRetainer);
 
     // Bucket tappet (cam follower)
     const intakeBucket = new THREE.Mesh(
       new THREE.CylinderGeometry(0.10, 0.10, 0.14, 24),
       this.materials.wristPin
     );
-    intakeBucket.position.y = 0.96;
-    this.intakeValveGroup.add(intakeBucket);
+    intakeBucket.position.y = 0.90;
+    this.intakeMovingGroup.add(intakeBucket);
 
-    this.intakeValveBasePos = new THREE.Vector3(-0.21, headBaseY - 0.13, 0);
+    this.intakeValveGroup.add(this.intakeMovingGroup);
+
+    this.intakeValveBasePos = new THREE.Vector3(-0.21, headBaseY - 0.01, 0);
     this.intakeValveGroup.position.copy(this.intakeValveBasePos);
     this.intakeValveGroup.rotation.z = valveAngle;
     this.root.add(this.intakeValveGroup);
@@ -1648,39 +1655,46 @@ export class EngineModel {
     this.exhaustValveGroup = new THREE.Group();
     this.exhaustValveGroup.name = 'ExhaustValve_Assembly';
 
+    // Stationary on head: dual valve spring
+    this.exhaustSpringMesh = this.createValveSpring(this.materials.spring);
+    this.exhaustSpringMesh.position.y = 0.38;
+    this.exhaustValveGroup.add(this.exhaustSpringMesh);
+
+    // Reciprocating valve components (slides straight along stem axis)
+    this.exhaustMovingGroup = new THREE.Group();
+    this.exhaustMovingGroup.name = 'Exhaust_Moving_Components';
+
     const exhaustHead = new THREE.Mesh(
       new THREE.ConeGeometry(0.17, 0.06, 32),
       this.materials.valveExhaust
     );
     exhaustHead.rotation.x = Math.PI;
-    this.exhaustValveGroup.add(exhaustHead);
+    this.exhaustMovingGroup.add(exhaustHead);
 
     const exhaustStem = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.032, 0.032, 1.00, 16),
+      new THREE.CylinderGeometry(0.032, 0.032, 0.98, 16),
       this.materials.valveExhaust
     );
-    exhaustStem.position.y = 0.50;
-    this.exhaustValveGroup.add(exhaustStem);
-
-    this.exhaustSpringMesh = this.createValveSpring(this.materials.spring);
-    this.exhaustSpringMesh.position.y = 0.40;
-    this.exhaustValveGroup.add(this.exhaustSpringMesh);
+    exhaustStem.position.y = 0.49;
+    this.exhaustMovingGroup.add(exhaustStem);
 
     const exhaustRetainer = new THREE.Mesh(
       new THREE.CylinderGeometry(0.10, 0.075, 0.045, 24),
       this.materials.retainer
     );
-    exhaustRetainer.position.y = 0.90;
-    this.exhaustValveGroup.add(exhaustRetainer);
+    exhaustRetainer.position.y = 0.82;
+    this.exhaustMovingGroup.add(exhaustRetainer);
 
     const exhaustBucket = new THREE.Mesh(
       new THREE.CylinderGeometry(0.10, 0.10, 0.14, 24),
       this.materials.wristPin
     );
-    exhaustBucket.position.y = 0.96;
-    this.exhaustValveGroup.add(exhaustBucket);
+    exhaustBucket.position.y = 0.90;
+    this.exhaustMovingGroup.add(exhaustBucket);
 
-    this.exhaustValveBasePos = new THREE.Vector3(0.21, headBaseY - 0.13, 0);
+    this.exhaustValveGroup.add(this.exhaustMovingGroup);
+
+    this.exhaustValveBasePos = new THREE.Vector3(0.21, headBaseY - 0.01, 0);
     this.exhaustValveGroup.position.copy(this.exhaustValveBasePos);
     this.exhaustValveGroup.rotation.z = -valveAngle;
     this.root.add(this.exhaustValveGroup);
@@ -1689,12 +1703,12 @@ export class EngineModel {
     this.camshaftGroup = new THREE.Group();
     this.camshaftGroup.name = 'DOHC_Camshaft_Assembly';
 
-    const camY = headBaseY + 0.90;   // 3.45
+    const camY = headBaseY + 0.97;   // 3.52
 
     // Intake camshaft (left, centered directly over intake valve bucket)
     this.intakeCamshaftGroup = new THREE.Group();
     this.intakeCamshaftGroup.name = 'Intake_Camshaft';
-    this.intakeCamshaftGroup.position.set(-0.566, camY, 0);
+    this.intakeCamshaftGroup.position.set(-0.570, camY, 0);
 
     const intakeShaft = new THREE.Mesh(
       new THREE.CylinderGeometry(0.070, 0.070, 1.20, 24),
@@ -1733,7 +1747,7 @@ export class EngineModel {
     // Exhaust camshaft (right, centered directly over exhaust valve bucket)
     this.exhaustCamshaftGroup = new THREE.Group();
     this.exhaustCamshaftGroup.name = 'Exhaust_Camshaft';
-    this.exhaustCamshaftGroup.position.set(0.566, camY, 0);
+    this.exhaustCamshaftGroup.position.set(0.570, camY, 0);
 
     const exhaustShaft = new THREE.Mesh(
       new THREE.CylinderGeometry(0.070, 0.070, 1.20, 24),
@@ -1757,7 +1771,7 @@ export class EngineModel {
 
     // Timing chain link (connects both cam sprockets across center-to-center distance)
     const timingLink = new THREE.Mesh(
-      new THREE.BoxGeometry(1.132, 0.030, 0.035),
+      new THREE.BoxGeometry(1.140, 0.030, 0.035),
       this.materials.bolts
     );
     timingLink.position.set(0, camY + 0.18, 0.56);
@@ -2019,27 +2033,24 @@ export class EngineModel {
       pistonPos.z + pistonExp.z
     );
 
-    // 4. Canted Valve Lifts
-    const vAng = 0.38;
-    const intakeExp = this.parts.intakeValve.currentExplodeOffset || new THREE.Vector3();
+    // 4. Canted Valve Straight Stroke Lifts
     const intakeLift = kinematicsState.intakeValveLift * 0.13;
-    this.intakeValveGroup.position.set(
-      this.intakeValveBasePos.x + intakeExp.x - Math.sin(vAng) * intakeLift,
-      this.intakeValveBasePos.y + intakeExp.y - Math.cos(vAng) * intakeLift,
-      this.intakeValveBasePos.z + intakeExp.z
-    );
-    const intakeSpringScale = 1 - kinematicsState.intakeValveLift * 0.3;
-    this.intakeSpringMesh.scale.set(1, Math.max(0.65, intakeSpringScale), 1);
+    const intakeExp = this.parts.intakeValve.currentExplodeOffset || new THREE.Vector3();
+    this.intakeValveGroup.position.copy(this.intakeValveBasePos.clone().add(intakeExp));
+    if (this.intakeMovingGroup) {
+      this.intakeMovingGroup.position.y = -intakeLift;
+    }
+    const intakeSpringScale = (0.42 - intakeLift) / 0.42;
+    this.intakeSpringMesh.scale.set(1, Math.max(0.60, intakeSpringScale), 1);
 
-    const exhaustExp = this.parts.exhaustValve.currentExplodeOffset || new THREE.Vector3();
     const exhaustLift = kinematicsState.exhaustValveLift * 0.13;
-    this.exhaustValveGroup.position.set(
-      this.exhaustValveBasePos.x + exhaustExp.x + Math.sin(vAng) * exhaustLift,
-      this.exhaustValveBasePos.y + exhaustExp.y - Math.cos(vAng) * exhaustLift,
-      this.exhaustValveBasePos.z + exhaustExp.z
-    );
-    const exhaustSpringScale = 1 - kinematicsState.exhaustValveLift * 0.3;
-    this.exhaustSpringMesh.scale.set(1, Math.max(0.65, exhaustSpringScale), 1);
+    const exhaustExp = this.parts.exhaustValve.currentExplodeOffset || new THREE.Vector3();
+    this.exhaustValveGroup.position.copy(this.exhaustValveBasePos.clone().add(exhaustExp));
+    if (this.exhaustMovingGroup) {
+      this.exhaustMovingGroup.position.y = -exhaustLift;
+    }
+    const exhaustSpringScale = (0.42 - exhaustLift) / 0.42;
+    this.exhaustSpringMesh.scale.set(1, Math.max(0.60, exhaustSpringScale), 1);
 
     // Fade combustion gas volume as chamber disassembles
     if (this.materials.combustionGas) {
@@ -2047,11 +2058,12 @@ export class EngineModel {
     }
 
     // 5. DOHC Camshafts (1/2 crank speed, perfectly synchronized to valve bucket contact)
+    const vAng = this.valveAngle || 0.38;
     if (this.intakeCamshaftGroup) {
-      this.intakeCamshaftGroup.rotation.z = -theta * 0.5 + (Math.PI / 4 - vAng);
+      this.intakeCamshaftGroup.rotation.z = -theta * 0.5 + (Math.PI / 4 + vAng);
     }
     if (this.exhaustCamshaftGroup) {
-      this.exhaustCamshaftGroup.rotation.z = -theta * 0.5 + (1.75 * Math.PI + vAng);
+      this.exhaustCamshaftGroup.rotation.z = -theta * 0.5 + (1.75 * Math.PI - vAng);
     }
 
     // 6. Spark Plug Arc Plasma
