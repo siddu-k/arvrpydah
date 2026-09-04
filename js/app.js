@@ -47,11 +47,11 @@ class EngineApp {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0xffffff);
 
-    // Radial studio floor
+    // Radial studio floor (white-theme defaults)
     const floorGeom = new THREE.CircleGeometry(10, 64);
     this.floorMat = new THREE.MeshStandardMaterial({
-      color: 0x12161f,
-      roughness: 0.85,
+      color: 0xf0f3f7,
+      roughness: 0.65,
       metalness: 0.2
     });
     this.floor = new THREE.Mesh(floorGeom, this.floorMat);
@@ -60,9 +60,11 @@ class EngineApp {
     this.floor.receiveShadow = true;
     this.scene.add(this.floor);
 
-    // Floor grid
-    this.grid = new THREE.GridHelper(16, 32, 0x00f0ff, 0x1a2333);
+    // Floor grid (white-theme defaults)
+    this.grid = new THREE.GridHelper(16, 32, 0xc8cfdb, 0xc8cfdb);
     this.grid.position.y = -1.19;
+    this.grid.material.opacity = 0.5;
+    this.grid.material.transparent = true;
     this.scene.add(this.grid);
 
     // Camera - nicely framed to view full valvetrain to crankcase
