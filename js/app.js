@@ -37,7 +37,7 @@ class EngineApp {
     window.addEventListener('resize', () => this.onWindowResize());
 
     // Default to clean White Studio background
-    this.setBackgroundTheme('#ffffff');
+    this.setAppTheme('white');
 
     // Start animation loop with WebXR renderer loop
     this.renderer.setAnimationLoop((time, frame) => this.render(time, frame));
@@ -394,6 +394,14 @@ class EngineApp {
         this.grid.material.opacity = 0.5;
       }
       if (this.ambientLight) this.ambientLight.intensity = 1.6;
+    }
+  }
+
+  setBackgroundTheme(themeOrColor) {
+    if (themeOrColor === '#ffffff' || themeOrColor === 'white') {
+      this.setAppTheme('white');
+    } else {
+      this.setAppTheme('black');
     }
   }
 

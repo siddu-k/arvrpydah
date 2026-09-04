@@ -626,23 +626,6 @@ body.theme-black .slider {
 body.theme-black .slider::-webkit-slider-thumb {
   background: #ffffff;
 }
-  box-shadow: 3px 3px 0px #000;
-}
-
-.custom-color-wrapper input[type="color"] {
-  position: absolute;
-  top: -10px;
-  left: -10px;
-  width: 48px;
-  height: 48px;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.custom-color-icon {
-  font-size: 12px;
-  pointer-events: none;
-}
 
 /* ==========================================================================
    PART INSPECTION CARD (DRAFTING BLUEPRINT CARD)
