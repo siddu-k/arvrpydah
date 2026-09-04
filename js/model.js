@@ -110,7 +110,7 @@ export class EngineModel {
     this.clipPlaneX = new THREE.Plane(new THREE.Vector3(-1, 0, 0), 0);
     this.clipPlaneSlice = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0.5);
     this.activeClippingPlanes = [];
-    this.crossSectionMode = 'quarter';
+    this.crossSectionMode = 'half';
   }
 
   /* ================================================================
@@ -230,14 +230,35 @@ export class EngineModel {
       color: 0x0e1014, metalness: 0.8, roughness: 0.6,
       name: 'Internal Cavity'
     });
+    // 22 — Cast Aluminum Oil Pan (Blueprint Image 3)
+    this.materials.pan = new THREE.MeshStandardMaterial({
+      color: 0x8e98a5, metalness: 0.85, roughness: 0.35,
+      bumpMap: this.castTex, bumpScale: 0.002,
+      name: 'Cast Aluminum Oil Pan', side: DS
+    });
+    // 23 — Sump Lubricating Oil (translucent golden amber, CAD Blueprint Image 3)
+    this.materials.oil = new THREE.MeshStandardMaterial({
+      color: 0xc48c12, metalness: 0.12, roughness: 0.08,
+      transparent: true, opacity: 0.65, side: DS,
+      name: 'Engine Lubricating Oil'
+    });
+    // 24 — Pan Gasket (Blueprint Image 3 green gasket parting line)
+    this.materials.gasket = new THREE.MeshStandardMaterial({
+      color: 0x2e8550, metalness: 0.15, roughness: 0.85,
+      name: 'Elastomeric Oil Pan Gasket', side: DS
+    });
 
     // Clippable materials list
     this.clippableMaterials = [
       this.materials.block,
       this.materials.sleeve,
-      this.materials.coolant
+      this.materials.coolant,
+      this.materials.pan,
+      this.materials.oil,
+      this.materials.gasket,
+      this.materials.bolts
     ];
-    this.setCrossSectionMode('quarter');
+    this.setCrossSectionMode('half');
   }
 
   /* ================================================================
@@ -262,6 +283,10 @@ export class EngineModel {
       this.materials.block.roughness = 0.1;
       this.materials.sleeve.transparent = true;
       this.materials.sleeve.opacity = 0.38;
+      if (this.materials.pan) {
+        this.materials.pan.transparent = true;
+        this.materials.pan.opacity = 0.25;
+      }
     } else {
       this.activeClippingPlanes = [];
       this.restoreBlockMaterials();
@@ -279,6 +304,10 @@ export class EngineModel {
     this.materials.block.roughness = 0.35;
     this.materials.sleeve.transparent = false;
     this.materials.sleeve.opacity = 1.0;
+    if (this.materials.pan) {
+      this.materials.pan.transparent = false;
+      this.materials.pan.opacity = 1.0;
+    }
   }
 
   /* ================================================================
@@ -289,6 +318,7 @@ export class EngineModel {
     this.buildConnectingRod();
     this.buildPiston();
     this.buildEngineBlock();
+    this.buildOilPan();
     this.buildCylinderHead();
     this.buildValvetrain();
     this.buildSparkPlug();
@@ -297,228 +327,203 @@ export class EngineModel {
   }
 
   /* ================================================================
-     1. SICKLE COUNTERWEIGHT CRANKSHAFT  (Blueprint Image 2 & 3)
-     Improved: proper main spine, accurate dual-pocket sickle webs,
-     polished crankpin, detailed harmonic balancer, full flywheel.
+     1. SICKLE COUNTERWEIGHT CRANKSHAFT  (Blueprint Image 1, 2, 3)
+     Reconstructed directly from automotive blueprint cross-sections:
+     - Asymmetric hammerhead sickle counterweights with winged lobes
+     - Recessed lightening pocket and through-hole
+     - Raised perimeter cheek rim & central main journal boss with oil hole
+     - Polished crankpin with cross-drilled oil feed passage
+     - Clean front snout with retaining washer & bolt (NO oversized balancer)
+     - Rear flywheel with ring gear & lightening holes tucked behind block
      ================================================================ */
   buildCrankshaft() {
     this.crankshaftGroup = new THREE.Group();
     this.crankshaftGroup.name = 'Crankshaft_Assembly';
     const r = this.crankR; // 0.44
-
-    // ---- Central Main Journal Spine (running the full Z length) ----
-    // The spine is the main shaft between front and rear journals
     const mainJournalR = 0.22;
-    const spineLength = 1.10; // front journal center to rear journal center
-    const spine = new THREE.Mesh(
-      new THREE.CylinderGeometry(mainJournalR, mainJournalR, spineLength, 36),
-      this.materials.crankshaft
-    );
-    spine.rotation.x = Math.PI / 2;
-    spine.position.set(0, 0, 0);
-    this.crankshaftGroup.add(spine);
 
-    // Front journal nose extension
-    const jFront = new THREE.Mesh(
-      new THREE.CylinderGeometry(mainJournalR, mainJournalR, 0.24, 36),
-      this.materials.crankshaft
-    );
-    jFront.rotation.x = Math.PI / 2;
-    jFront.position.z = 0.67;
-    this.crankshaftGroup.add(jFront);
-
-    // Rear journal extension
+    // Rear main journal extension (supports crankshaft in rear bearing and mounts flywheel)
     const jRear = new THREE.Mesh(
-      new THREE.CylinderGeometry(mainJournalR, mainJournalR, 0.30, 36),
+      new THREE.CylinderGeometry(mainJournalR, mainJournalR, 0.32, 36),
       this.materials.crankshaft
     );
     jRear.rotation.x = Math.PI / 2;
-    jRear.position.z = -0.70;
+    jRear.position.z = -0.44; // Spans z = -0.28 to -0.60 through rear bearing
     this.crankshaftGroup.add(jRear);
 
-    // ---- Precision Sickle Counterweight Webs (Blueprint Image 2) ----
-    // The counterweight is a thick asymmetric crescent opposite the crankpin.
-    // Blueprint shows it sweeps from just below the crankpin level down and
-    // around to a wide heavy mass below the shaft centerline.
-    const buildSickleWeb = (zPos) => {
-      // Outer sickle profile — accurate crescent as seen in blueprint cross-section
-      const sickle = new THREE.Shape();
-      sickle.moveTo(-0.12, r + 0.08);   // Left of crankpin top
-      sickle.bezierCurveTo(               // Top arc over crankpin
-        -0.02, r + 0.24,
-         0.16, r + 0.24,
-         0.26, r + 0.06
-      );
-      sickle.lineTo(0.40, 0.08);         // Right edge down to shaft level
-      sickle.bezierCurveTo(              // Right curve out into counterweight
-        0.64, -0.22,
-        0.62, -0.64,
-        0.42, -0.84
-      );
-      sickle.bezierCurveTo(              // Bottom sweep of heavy mass
-        0.24, -1.00,
-       -0.20, -1.00,
-       -0.42, -0.84
-      );
-      sickle.bezierCurveTo(              // Left curve back up
-       -0.62, -0.64,
-       -0.62, -0.22,
-       -0.38, 0.08
-      );
-      sickle.lineTo(-0.24, r + 0.04);   // Left edge back up to crankpin
-      sickle.closePath();
-
-      const extSettings = {
-        depth: 0.17, bevelEnabled: true, bevelSegments: 4,
-        bevelSize: 0.022, bevelThickness: 0.022
-      };
-      const mesh = new THREE.Mesh(
-        new THREE.ExtrudeGeometry(sickle, extSettings),
-        this.materials.crankshaft
-      );
-      mesh.position.z = zPos;
-      this.crankshaftGroup.add(mesh);
-
-      // ── Primary lightening/balance pocket (large, upper) ──
-      const pocket1 = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.14, 0.14, 0.07, 32),
-        this.materials.cavity
-      );
-      pocket1.rotation.x = Math.PI / 2;
-      pocket1.position.set(0.05, -0.38, zPos + 0.085);
-      this.crankshaftGroup.add(pocket1);
-
-      // ── Secondary balance pocket (smaller, lower — visible in Blueprint Image 2) ──
-      const pocket2 = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.085, 0.085, 0.07, 32),
-        this.materials.cavity
-      );
-      pocket2.rotation.x = Math.PI / 2;
-      pocket2.position.set(0.0, -0.70, zPos + 0.085);
-      this.crankshaftGroup.add(pocket2);
-    };
-
-    buildSickleWeb(0.16);   // Front web
-    buildSickleWeb(-0.36);  // Rear web
-
-    // ---- Crankpin Journal bridging the two webs (polished ground surface) ----
-    const crankPinR = 0.19;
-    const crankPinLen = 0.35; // Web-to-web span
-    const crankPin = new THREE.Mesh(
-      new THREE.CylinderGeometry(crankPinR, crankPinR, crankPinLen, 36),
-      this.materials.wristPin  // polished steel color
-    );
-    crankPin.rotation.x = Math.PI / 2;
-    crankPin.position.set(0, r, -0.10); // centered between webs
-    this.crankshaftGroup.add(crankPin);
-
-    // Oil feed groove on crankpin
-    const oilGroove = new THREE.Mesh(
-      new THREE.TorusGeometry(crankPinR, 0.010, 8, 36),
-      this.materials.cavity
-    );
-    oilGroove.position.set(0, r, -0.10);
-    this.crankshaftGroup.add(oilGroove);
-
-    // Cross-drilled oil feed passage through pin
-    const oilHole = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.030, 0.030, crankPinLen * 1.05, 12),
-      this.materials.cavity
-    );
-    oilHole.position.set(0, r, -0.10);
-    this.crankshaftGroup.add(oilHole);
-
-    // ---- Main Bearing Housing Fillets (smooth radius where web meets journal) ----
-    [0.16, -0.36].forEach((zW) => {
-      const fillet = new THREE.Mesh(
-        new THREE.TorusGeometry(mainJournalR + 0.012, 0.016, 12, 36, Math.PI * 2),
-        this.materials.crankshaft
-      );
-      fillet.position.set(0, 0, zW);
-      this.crankshaftGroup.add(fillet);
-    });
-
-    // ---- Flywheel (rear — large diameter for rotational inertia) ----
-    const flywheel = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.78, 0.78, 0.13, 48),
+    // Front main journal (supported in front wall bearing bore, flush — no snout sticking out)
+    const jFront = new THREE.Mesh(
+      new THREE.CylinderGeometry(mainJournalR, mainJournalR, 0.18, 36),
       this.materials.crankshaft
     );
-    flywheel.rotation.x = Math.PI / 2;
-    flywheel.position.z = -0.90;
-    this.crankshaftGroup.add(flywheel);
+    jFront.rotation.x = Math.PI / 2;
+    jFront.position.z = 0.37; // Spans z = 0.28 to 0.46
+    this.crankshaftGroup.add(jFront);
 
-    // Flywheel web openings (lightening holes, 6 evenly spaced)
-    for (let i = 0; i < 6; i++) {
-      const ang = (i / 6) * Math.PI * 2;
-      const fwHole = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.075, 0.075, 0.14, 16),
-        this.materials.cavity
-      );
-      fwHole.rotation.x = Math.PI / 2;
-      fwHole.position.set(Math.cos(ang) * 0.52, Math.sin(ang) * 0.52, -0.90);
-      this.crankshaftGroup.add(fwHole);
-    }
-
-    // Flywheel ring gear (starter engagement teeth)
-    const ringGear = new THREE.Mesh(
-      new THREE.TorusGeometry(0.77, 0.026, 10, 80),
-      this.materials.bolts
-    );
-    ringGear.position.z = -0.90;
-    this.crankshaftGroup.add(ringGear);
-
-    // Flywheel mounting flange
+    // Rear flywheel mounting flange
     const flange = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.28, 0.28, 0.06, 24),
+      new THREE.CylinderGeometry(0.26, 0.26, 0.04, 24),
       this.materials.crankshaft
     );
     flange.rotation.x = Math.PI / 2;
-    flange.position.z = -0.82;
+    flange.position.z = -0.62; // Spans z = -0.60 to -0.64
     this.crankshaftGroup.add(flange);
 
-    // ---- Harmonic Balancer / Front Crank Pulley ----
-    // Outer dampener ring
-    const balancerOuter = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.42, 0.42, 0.09, 36),
+    // Rear Flywheel (mounted safely behind engine block rear edge z = -0.56 with zero collision)
+    const flywheel = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.52, 0.52, 0.09, 48),
       this.materials.crankshaft
     );
-    balancerOuter.rotation.x = Math.PI / 2;
-    balancerOuter.position.z = 0.88;
-    this.crankshaftGroup.add(balancerOuter);
+    flywheel.rotation.x = Math.PI / 2;
+    flywheel.position.z = -0.72; // Spans z = -0.675 to -0.765
+    this.crankshaftGroup.add(flywheel);
 
-    // Rubber isolator ring (inset, slightly smaller)
-    const rubberRing = new THREE.Mesh(
-      new THREE.TorusGeometry(0.32, 0.032, 8, 36),
-      new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.0, roughness: 0.9, name: 'Rubber Dampener' })
-    );
-    rubberRing.position.z = 0.88;
-    this.crankshaftGroup.add(rubberRing);
+    // Flywheel lightening holes (6 evenly spaced)
+    for (let i = 0; i < 6; i++) {
+      const ang = (i / 6) * Math.PI * 2;
+      const fwHole = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.055, 0.055, 0.11, 16),
+        this.materials.cavity
+      );
+      fwHole.rotation.x = Math.PI / 2;
+      fwHole.position.set(Math.cos(ang) * 0.36, Math.sin(ang) * 0.36, -0.72);
+      this.crankshaftGroup.add(fwHole);
+    }
 
-    // Inner hub
-    const balancerHub = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.20, 0.20, 0.11, 24),
-      this.materials.crankshaft
-    );
-    balancerHub.rotation.x = Math.PI / 2;
-    balancerHub.position.z = 0.88;
-    this.crankshaftGroup.add(balancerHub);
-
-    // ---- Front Timing Sprocket (chain drive to DOHC cams) ----
-    const timingSprocket = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.17, 0.17, 0.055, 24),
+    // Flywheel ring gear
+    const ringGear = new THREE.Mesh(
+      new THREE.TorusGeometry(0.51, 0.02, 10, 64),
       this.materials.bolts
     );
-    timingSprocket.rotation.x = Math.PI / 2;
-    timingSprocket.position.z = 0.75;
-    this.crankshaftGroup.add(timingSprocket);
+    ringGear.position.z = -0.72;
+    this.crankshaftGroup.add(ringGear);
 
-    // Sprocket teeth ring
-    const sprocketTeeth = new THREE.Mesh(
-      new THREE.TorusGeometry(0.168, 0.014, 6, 24),
-      this.materials.bolts
+    // ---- Precision Sickle Counterweight Webs (Blueprint Image 1, 2, 3) ----
+    const buildSickleWeb = (zPos) => {
+      // Counterweight shape scaled to blueprint-accurate radius 0.58
+      const sickle = new THREE.Shape();
+      // Upper arc over crankpin (radius ~0.20 around crankpin (0, r))
+      sickle.moveTo(-0.15, r + 0.04);
+      sickle.bezierCurveTo(
+        -0.08, r + 0.20,
+         0.08, r + 0.20,
+         0.15, r + 0.04
+      );
+      // Waist transition down the right side to shaft level
+      sickle.bezierCurveTo(
+         0.22, r - 0.15,
+         0.22, 0.05,
+         0.26, -0.10
+      );
+      // Flare out into right winged lobe (hammerhead ear)
+      sickle.bezierCurveTo(
+         0.34, -0.20,
+         0.40, -0.28,
+         0.38, -0.38
+      );
+      // Right lobe tip curve into bottom arc
+      sickle.bezierCurveTo(
+         0.35, -0.48,
+         0.26, -0.54,
+         0.16, -0.58
+      );
+      // Bottom concentric sweep of counterweight heavy mass (max radius 0.58)
+      sickle.bezierCurveTo(
+         0.08, -0.60,
+        -0.08, -0.60,
+        -0.16, -0.58
+      );
+      // Left lobe tip curve from bottom arc
+      sickle.bezierCurveTo(
+        -0.26, -0.54,
+        -0.35, -0.48,
+        -0.38, -0.38
+      );
+      // Left winged lobe curve back in
+      sickle.bezierCurveTo(
+        -0.40, -0.28,
+        -0.34, -0.20,
+        -0.26, -0.10
+      );
+      // Waist transition up the left side back to crankpin
+      sickle.bezierCurveTo(
+        -0.22, 0.05,
+        -0.22, r - 0.15,
+        -0.15, r + 0.04
+      );
+      sickle.closePath();
+
+      const extSettings = {
+        depth: 0.16, bevelEnabled: true, bevelSegments: 3,
+        bevelSize: 0.016, bevelThickness: 0.016
+      };
+      const webMesh = new THREE.Mesh(
+        new THREE.ExtrudeGeometry(sickle, extSettings),
+        this.materials.crankshaft
+      );
+      webMesh.position.z = zPos;
+      this.crankshaftGroup.add(webMesh);
+
+      // Circular collar around main journal on front face of web (Blueprint Image 1)
+      if (zPos > 0) {
+        const hubBoss = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.24, 0.24, 0.02, 32),
+          this.materials.crankshaft
+        );
+        hubBoss.rotation.x = Math.PI / 2;
+        hubBoss.position.set(0, 0, zPos + 0.16);
+        this.crankshaftGroup.add(hubBoss);
+
+        // Central axial oil gallery bore (hole through the collar)
+        const mainOilHole = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.045, 0.045, 0.03, 16),
+          this.materials.cavity
+        );
+        mainOilHole.rotation.x = Math.PI / 2;
+        mainOilHole.position.set(0, 0, zPos + 0.16);
+        this.crankshaftGroup.add(mainOilHole);
+      }
+
+      // Recessed lightening pocket on cheek (visible in Blueprint Image 2 wireframe)
+      const pocket = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.10, 0.10, 0.06, 32),
+        this.materials.cavity
+      );
+      pocket.rotation.x = Math.PI / 2;
+      pocket.position.set(0.0, -0.38, zPos + 0.08);
+      this.crankshaftGroup.add(pocket);
+
+      // Through-hole in balance pocket
+      const throughHole = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.055, 0.055, 0.18, 24),
+        this.materials.cavity
+      );
+      throughHole.rotation.x = Math.PI / 2;
+      throughHole.position.set(0.0, -0.38, zPos + 0.08);
+      this.crankshaftGroup.add(throughHole);
+    };
+
+    buildSickleWeb(0.12);   // Front web (spans z = 0.12 to 0.28)
+    buildSickleWeb(-0.28);  // Rear web (spans z = -0.28 to -0.12)
+
+    // ---- Crankpin Journal centered at Z = 0 (perfectly aligned with rod & bore) ----
+    const crankPinR = 0.19;
+    const crankPinLen = 0.24; // Spans z = -0.12 to +0.12 between webs
+    const crankPin = new THREE.Mesh(
+      new THREE.CylinderGeometry(crankPinR, crankPinR, crankPinLen, 36),
+      this.materials.wristPin  // ground nitrided steel
     );
-    sprocketTeeth.position.z = 0.75;
-    this.crankshaftGroup.add(sprocketTeeth);
+    crankPin.rotation.x = Math.PI / 2;
+    crankPin.position.set(0, r, 0);
+    this.crankshaftGroup.add(crankPin);
+
+    // Cross-drilled oil feed hole through crankpin
+    const pinOilHole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.030, 0.030, crankPinLen * 1.02, 12),
+      this.materials.cavity
+    );
+    pinOilHole.position.set(0, r, 0);
+    this.crankshaftGroup.add(pinOilHole);
 
     this.root.add(this.crankshaftGroup);
 
@@ -578,20 +583,37 @@ export class EngineModel {
     bearingLower.rotation.x = Math.PI / 2;
     this.rodCapGroup.add(bearingLower);
 
-    // 12-Point ARP Rod Bolts (two bolts clamping cap to rod)
-    [-0.24, 0.24].forEach((xOff) => {
+    // Forged bolt boss shoulders on cap & upper rod (integrates bolts into forged body)
+    [-0.23, 0.23].forEach((xOff) => {
+      const capEar = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12, 0.16, 0.24),
+        this.materials.conRod
+      );
+      capEar.position.set(xOff, -0.10, 0);
+      this.rodCapGroup.add(capEar);
+
+      // Upper rod matching bolt shoulder
+      const rodEar = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12, 0.14, 0.24),
+        this.materials.conRod
+      );
+      rodEar.position.set(xOff, 0.05, 0);
+      this.conRodGroup.add(rodEar);
+
+      // ARP Rod Bolt shank
       const boltShank = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.04, 0.04, 0.34, 16),
+        new THREE.CylinderGeometry(0.035, 0.035, 0.28, 16),
         this.materials.bolts
       );
-      boltShank.position.set(xOff, -0.15, 0);
+      boltShank.position.set(xOff, -0.09, 0);
       this.rodCapGroup.add(boltShank);
 
+      // ARP 12-Point Bolt Head nestled flush against cap spotface
       const boltHead = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.065, 0.065, 0.07, 12),
+        new THREE.CylinderGeometry(0.055, 0.055, 0.065, 12),
         this.materials.bolts
       );
-      boltHead.position.set(xOff, -0.32, 0);
+      boltHead.position.set(xOff, -0.21, 0);
       this.rodCapGroup.add(boltHead);
     });
 
@@ -875,9 +897,10 @@ export class EngineModel {
     this.engineBlockGroup.name = 'EngineBlock_Assembly';
 
     const rBore = this.rBore;  // 0.425
+    const mainJournalR = 0.22; // Main crankshaft journal radius
     const deckY = 2.52;        // Block deck (head gasket surface)
-    const blockBotY = 0.10;    // Bottom edge of the main cylinder block walls
-    const blockH = deckY - blockBotY; // 2.42
+    const blockBotY = 0.65;    // Cylinder block outer barrel bottom (crankcase flare starts here)
+    const blockH = deckY - blockBotY; // 1.87
     const blockOuterR = 0.82;
     const blockInnerR = 0.60;
 
@@ -890,7 +913,7 @@ export class EngineModel {
     // ---- 2. Coolant Jacket (annular passage — bore clearance to inner block wall) ----
     const coolantInnerR = rBore + 0.030;   // 0.455
     const coolantOuterR = blockInnerR - 0.012; // 0.588
-    const coolantH = blockH * 0.72;
+    const coolantH = blockH * 0.75;
     const coolantGeom = this.createHollowCylinderGeometry(coolantInnerR, coolantOuterR, coolantH, 48);
     const coolantMesh = new THREE.Mesh(coolantGeom, this.materials.coolant);
     coolantMesh.position.y = blockBotY + blockH * 0.52;
@@ -898,7 +921,7 @@ export class EngineModel {
 
     // ---- 3. Honed Cylinder Sleeve Liner ----
     this.cylinderSleeveMesh = new THREE.Mesh(
-      new THREE.CylinderGeometry(rBore, rBore, blockH * 0.96, 48, 1, true),
+      new THREE.CylinderGeometry(rBore, rBore, blockH * 0.98, 48, 1, true),
       this.materials.sleeve
     );
     this.cylinderSleeveMesh.position.y = blockBotY + blockH / 2;
@@ -926,95 +949,145 @@ export class EngineModel {
     });
 
     // ---- 5. Block Exterior Reinforcement Ribs (vertical ribs on outer cylinder body) ----
+    const ribH = blockH * 0.70;
     for (let i = 0; i < 8; i++) {
       const ang = (i / 8) * Math.PI * 2;
       const ribX = Math.cos(ang) * (blockOuterR + 0.032);
       const ribZ = Math.sin(ang) * (blockOuterR + 0.032);
       const rib = new THREE.Mesh(
-        new THREE.BoxGeometry(0.038, blockH * 0.70, 0.038),
+        new THREE.BoxGeometry(0.038, ribH, 0.038),
         this.materials.block
       );
-      rib.position.set(ribX, blockBotY + blockH * 0.60, ribZ);
+      rib.position.set(ribX, blockBotY + ribH / 2 + 0.05, ribZ);
       this.engineBlockGroup.add(rib);
     }
 
-    // ---- 6. Crankcase (large D-bore sweeping around crankshaft assembly) ----
-    // The crankcase must be wide enough for the full counterweight sweep:
-    // crankR + counterweight extent ≈ 0.44 + 1.00 = 1.44 radius needed
-    // We model it as wide rectangular walls that flare outward
-    const ccTopY = blockBotY;      // 0.10  — joins cylinder block bottom
-    const ccBotY = -0.18;          // Bottom of main bearing saddle area
-    const ccH = ccTopY - ccBotY;   // 0.28
-    const ccHalfW = 0.88;          // Half-width (±X)
-    const ccHalfD = 0.72;          // Half-depth (±Z)
+    // ---- 6. Crankcase Skirt & Vaulted Shoulder (Blueprint Image 1, 2, 3) ----
+    // Below the cylinder bore (y = 0.65), the crankcase vaulted shoulder flares out
+    // smoothly to width ±0.95, completely enclosing the rotating counterweights.
+    const ccTopY = 0.65;           // Crankcase vaulted shoulder begins
+    const flareBotY = 0.10;        // Meets vertical skirt walls
+    const flareH = ccTopY - flareBotY; // 0.55
+    const skirtBotY = -0.58;       // Bottom of crankcase skirt (flange join)
+    const skirtH = flareBotY - skirtBotY; // 0.68
+    const ccHalfW = 0.95;          // Crankcase skirt half-width (±X)
+    const ccHalfD = 0.54;          // Crankcase skirt half-depth (±Z)
 
-    // Side walls with tapered (slightly belled) profile
-    [-ccHalfW, ccHalfW].forEach((xPos) => {
-      const wall = new THREE.Mesh(
-        new THREE.BoxGeometry(0.13, ccH, ccHalfD * 2 + 0.04),
-        this.materials.block
-      );
-      wall.position.set(xPos, (ccTopY + ccBotY) / 2, 0);
-      this.engineBlockGroup.add(wall);
-    });
-
-    // Front & rear end walls
-    [-ccHalfD, ccHalfD].forEach((zPos) => {
-      const wall = new THREE.Mesh(
-        new THREE.BoxGeometry(ccHalfW * 2 + 0.16, ccH, 0.13),
-        this.materials.block
-      );
-      wall.position.set(0, (ccTopY + ccBotY) / 2, zPos);
-      this.engineBlockGroup.add(wall);
-    });
-
-    // Tapered lower skirt (flares wider from block bottom to crankcase bottom)
-    // Modeled as 4 tapered wall segments
-    const skirtTopY = blockBotY;    // 0.10
-    const skirtBotY = -0.70;        // Wide base at oil pan join
-    const skirtH = skirtTopY - skirtBotY; // 0.80
-
-    // Side skirts (widens from ccHalfW to 0.96)
+    // Tapered transition shoulder (flares out from cylinder radius 0.70 to crankcase 0.95)
     [-1, 1].forEach((side) => {
-      const skirtWall = new THREE.Mesh(
-        new THREE.BoxGeometry(0.12, skirtH, ccHalfD * 2 + 0.08),
-        this.materials.block
-      );
-      skirtWall.position.set(side * (ccHalfW + 0.07), (skirtTopY + skirtBotY) / 2, 0);
-      this.engineBlockGroup.add(skirtWall);
+      const flareShape = new THREE.Shape();
+      flareShape.moveTo(side * 0.70, ccTopY);
+      flareShape.lineTo(side * ccHalfW, flareBotY);
+      flareShape.lineTo(side * (ccHalfW - 0.10), flareBotY);
+      flareShape.lineTo(side * 0.60, ccTopY);
+      flareShape.closePath();
+
+      const flareGeom = new THREE.ExtrudeGeometry(flareShape, { depth: ccHalfD * 2, bevelEnabled: false });
+      flareGeom.translate(0, 0, -ccHalfD);
+      const flareMesh = new THREE.Mesh(flareGeom, this.materials.block);
+      this.engineBlockGroup.add(flareMesh);
     });
 
-    // Front/rear skirts
-    [-1, 1].forEach((side) => {
-      const skirtEnd = new THREE.Mesh(
-        new THREE.BoxGeometry((ccHalfW + 0.09) * 2, skirtH, 0.12),
+    // Skirt side walls (vertical cast walls from flare down to mounting flange)
+    [-ccHalfW + 0.05, ccHalfW - 0.05].forEach((xPos) => {
+      const sideWall = new THREE.Mesh(
+        new THREE.BoxGeometry(0.10, skirtH, ccHalfD * 2),
         this.materials.block
       );
-      skirtEnd.position.set(0, (skirtTopY + skirtBotY) / 2, side * (ccHalfD + 0.07));
-      this.engineBlockGroup.add(skirtEnd);
+      sideWall.position.set(xPos, (flareBotY + skirtBotY) / 2, 0);
+      this.engineBlockGroup.add(sideWall);
     });
 
-    // Crankcase exterior reinforcement ribs (horizontal band ribs visible in blueprints)
-    [-0.32, -0.50].forEach((yPos) => {
-      const ribBand = new THREE.Mesh(
-        new THREE.BoxGeometry((ccHalfW + 0.10) * 2 + 0.01, 0.038, ccHalfD * 2 + 0.22),
-        this.materials.block
-      );
-      ribBand.position.set(0, yPos, 0);
-      this.engineBlockGroup.add(ribBand);
+    // Rear wall (supporting rear main bearing, with circular journal bore)
+    const rearWallShape = new THREE.Shape();
+    rearWallShape.moveTo(-ccHalfW, skirtBotY);
+    rearWallShape.lineTo( ccHalfW, skirtBotY);
+    rearWallShape.lineTo( ccHalfW, ccTopY);
+    rearWallShape.lineTo(-ccHalfW, ccTopY);
+    rearWallShape.closePath();
+    const rearBore = new THREE.Path();
+    rearBore.absarc(0, 0, mainJournalR + 0.04, 0, Math.PI * 2, true);
+    rearWallShape.holes.push(rearBore);
+
+    const rearWallGeom = new THREE.ExtrudeGeometry(rearWallShape, { depth: 0.08, bevelEnabled: false });
+    const rearWall = new THREE.Mesh(rearWallGeom, this.materials.block);
+    rearWall.position.z = -ccHalfD;
+    this.engineBlockGroup.add(rearWall);
+
+    // Front wall (with circular journal bore, cleanly cut in cutaway mode)
+    const frontWallShape = new THREE.Shape();
+    frontWallShape.moveTo(-ccHalfW, skirtBotY);
+    frontWallShape.lineTo( ccHalfW, skirtBotY);
+    frontWallShape.lineTo( ccHalfW, ccTopY);
+    frontWallShape.lineTo(-ccHalfW, ccTopY);
+    frontWallShape.closePath();
+    const frontBore = new THREE.Path();
+    frontBore.absarc(0, 0, mainJournalR + 0.04, 0, Math.PI * 2, true);
+    frontWallShape.holes.push(frontBore);
+
+    const frontWallGeom = new THREE.ExtrudeGeometry(frontWallShape, { depth: 0.08, bevelEnabled: false });
+    const frontWall = new THREE.Mesh(frontWallGeom, this.materials.block);
+    frontWall.position.z = ccHalfD - 0.08;
+    this.engineBlockGroup.add(frontWall);
+
+    // Crankcase exterior stiffening ribs (strictly on exterior of side walls, zero interior intrusion)
+    [-0.10, -0.38].forEach((yPos) => {
+      [-ccHalfW - 0.015, ccHalfW + 0.015].forEach((xPos) => {
+        const rib = new THREE.Mesh(
+          new THREE.BoxGeometry(0.04, 0.035, ccHalfD * 2),
+          this.materials.block
+        );
+        rib.position.set(xPos, yPos, 0);
+        this.engineBlockGroup.add(rib);
+      });
     });
 
-    // ---- 7. Main Bearing Saddles & 4-Bolt Caps (blueprint shows thick robust caps) ----
-    const mainCapY = -0.04; // Center Y of bearing bore
-    const mainJournalR = 0.22; // Must match crankshaft main journal
-    const mainCapBoreR = mainJournalR + 0.005; // Small clearance for bearing shell
+    // ---- 7. Crankcase Lower Mounting Flange & Gasket (Split Line) ----
+    const flangeHalfW = 1.04;
+    const flangeHalfD = 0.56;
+    const flangeH = 0.06;
 
-    // Two bearing saddle locations (front & rear of crankpin span)
-    const bearingZ = [0.52, -0.52];
+    // Block lower mounting flange (hollow rectangular frame)
+    const flangeShape = new THREE.Shape();
+    flangeShape.moveTo(-flangeHalfW, -flangeHalfD);
+    flangeShape.lineTo( flangeHalfW, -flangeHalfD);
+    flangeShape.lineTo( flangeHalfW,  flangeHalfD);
+    flangeShape.lineTo(-flangeHalfW,  flangeHalfD);
+    flangeShape.closePath();
+
+    const holePath = new THREE.Path();
+    const inW = flangeHalfW - 0.12;
+    const inD = flangeHalfD - 0.12;
+    holePath.moveTo(-inW, -inD);
+    holePath.lineTo( inW, -inD);
+    holePath.lineTo( inW,  inD);
+    holePath.lineTo(-inW,  inD);
+    holePath.closePath();
+    flangeShape.holes.push(holePath);
+
+    const blockFlangeGeom = new THREE.ExtrudeGeometry(flangeShape, { depth: flangeH, bevelEnabled: false });
+    blockFlangeGeom.rotateX(Math.PI / 2);
+    const blockFlange = new THREE.Mesh(blockFlangeGeom, this.materials.block);
+    blockFlange.position.y = skirtBotY;
+    this.engineBlockGroup.add(blockFlange);
+
+    // Oil pan perimeter gasket (distinctive green gasket line, hollow frame)
+    const gasketGeom = new THREE.ExtrudeGeometry(flangeShape, { depth: 0.02, bevelEnabled: false });
+    gasketGeom.rotateX(Math.PI / 2);
+    const panGasket = new THREE.Mesh(gasketGeom, this.materials.gasket);
+    panGasket.position.y = skirtBotY - flangeH;
+    this.engineBlockGroup.add(panGasket);
+
+    // ---- 8. Main Bearing Saddles & 4-Bolt Caps ----
+    const mainCapY = 0.0; // Center Y of main crankshaft axis
+    const mainCapBoreR = mainJournalR + 0.005;
+
+    // Rear main bearing saddle & 4-bolt cap (in intact rear half, zero collision)
+    const bearingZ = [-0.40];
     bearingZ.forEach((zOff) => {
-      // Upper bearing saddle (cast into block — upper half)
+      // Upper bearing saddle (integral with block casting — upper half)
       const saddleUpper = new THREE.Mesh(
-        new THREE.CylinderGeometry(mainCapBoreR + 0.085, mainCapBoreR + 0.085, 0.18, 32, 1, false, Math.PI, Math.PI),
+        new THREE.CylinderGeometry(mainCapBoreR + 0.085, mainCapBoreR + 0.085, 0.14, 32, 1, false, Math.PI, Math.PI),
         this.materials.block
       );
       saddleUpper.rotation.x = Math.PI / 2;
@@ -1023,16 +1096,16 @@ export class EngineModel {
 
       // Upper bearing shell (tri-metal insert)
       const shellUpper = new THREE.Mesh(
-        new THREE.CylinderGeometry(mainCapBoreR, mainCapBoreR, 0.17, 32, 1, true, Math.PI, Math.PI),
+        new THREE.CylinderGeometry(mainCapBoreR, mainCapBoreR, 0.13, 32, 1, true, Math.PI, Math.PI),
         this.materials.bushing
       );
       shellUpper.rotation.x = Math.PI / 2;
       shellUpper.position.set(0, mainCapY, zOff);
       this.engineBlockGroup.add(shellUpper);
 
-      // Bearing cap body (lower half — thick D-shape)
+      // Robust 4-bolt main bearing cap (lower half)
       const capBody = new THREE.Mesh(
-        new THREE.CylinderGeometry(mainCapBoreR + 0.085, mainCapBoreR + 0.085, 0.18, 32, 1, false, 0, Math.PI),
+        new THREE.CylinderGeometry(mainCapBoreR + 0.085, mainCapBoreR + 0.085, 0.14, 32, 1, false, 0, Math.PI),
         this.materials.conRod
       );
       capBody.rotation.x = Math.PI / 2;
@@ -1041,176 +1114,274 @@ export class EngineModel {
 
       // Lower bearing shell
       const shellLower = new THREE.Mesh(
-        new THREE.CylinderGeometry(mainCapBoreR, mainCapBoreR, 0.17, 32, 1, true, 0, Math.PI),
+        new THREE.CylinderGeometry(mainCapBoreR, mainCapBoreR, 0.13, 32, 1, true, 0, Math.PI),
         this.materials.bushing
       );
       shellLower.rotation.x = Math.PI / 2;
       shellLower.position.set(0, mainCapY, zOff);
       this.engineBlockGroup.add(shellLower);
 
-      // Cap parting-face pads (flanges at split line)
-      [-mainCapBoreR - 0.086, mainCapBoreR + 0.086].forEach((xOff) => {
+      // Cap parting-face pads
+      [-mainCapBoreR - 0.085, mainCapBoreR + 0.085].forEach((xOff) => {
         const pad = new THREE.Mesh(
-          new THREE.BoxGeometry(0.065, 0.10, 0.18),
+          new THREE.BoxGeometry(0.065, 0.09, 0.14),
           this.materials.conRod
         );
-        pad.position.set(xOff, mainCapY - 0.07, zOff);
+        pad.position.set(xOff, mainCapY - 0.06, zOff);
         this.engineBlockGroup.add(pad);
       });
 
-      // 4 cap bolts (2 per side, long bolts clamping cap to block)
-      [[-mainCapBoreR - 0.072, 0.055], [-mainCapBoreR - 0.072, -0.055],
-       [ mainCapBoreR + 0.072, 0.055], [ mainCapBoreR + 0.072, -0.055]].forEach(([xB, zB]) => {
-        const bolt = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.025, 0.025, 0.28, 10),
+      // 4 ARP main cap studs with 12-point nuts
+      [[-mainCapBoreR - 0.070, 0.045], [-mainCapBoreR - 0.070, -0.045],
+       [ mainCapBoreR + 0.070, 0.045], [ mainCapBoreR + 0.070, -0.045]].forEach(([xB, zB]) => {
+        const stud = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.024, 0.024, 0.26, 12),
           this.materials.bolts
         );
-        bolt.position.set(xB, mainCapY - 0.09, zOff + zB);
-        this.engineBlockGroup.add(bolt);
+        stud.position.set(xB, mainCapY - 0.08, zOff + zB);
+        this.engineBlockGroup.add(stud);
 
-        const boltHead = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.040, 0.040, 0.04, 10),
+        const nut = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.038, 0.038, 0.04, 12),
           this.materials.bolts
         );
-        boltHead.position.set(xB, mainCapY - 0.24, zOff + zB);
-        this.engineBlockGroup.add(boltHead);
+        nut.position.set(xB, mainCapY - 0.22, zOff + zB);
+        this.engineBlockGroup.add(nut);
       });
 
-      // Oil return passage (hole at bottom of saddle)
+      // Main saddle oil drain port
       const oilReturn = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.028, 0.028, 0.20, 10),
+        new THREE.CylinderGeometry(0.028, 0.028, 0.18, 10),
         this.materials.cavity
       );
       oilReturn.position.set(0, mainCapY + mainCapBoreR + 0.05, zOff);
       this.engineBlockGroup.add(oilReturn);
     });
 
-    // ---- 8. Deep-Skirt Structural Cross-Bolting Webs ----
-    // Horizontal webs connecting left & right skirts at bearing level
-    bearingZ.forEach((zOff) => {
-      const web = new THREE.Mesh(
-        new THREE.BoxGeometry((ccHalfW - 0.14) * 2, 0.055, 0.055),
-        this.materials.block
-      );
-      web.position.set(0, mainCapY - 0.12, zOff);
-      this.engineBlockGroup.add(web);
-    });
-
-    // ---- 9. Perimeter-Finned Oil Pan (Blueprint Image 3 bottom) ----
-    // The oil pan has a deep well with a wide flanged top and finned sides
-    const panTopY = skirtBotY;      // -0.70 — mating face with block skirt
-    const panBotY = -1.08;          // Pan bottom
-    const panH = panTopY - panBotY; // 0.38
-    const panHalfW = 0.92;          // Slightly wider than skirt for flange
-    const panHalfD = 0.68;
-
-    // Mounting flange (flat lip that bolts to block skirt)
-    const panFlange = new THREE.Mesh(
-      new THREE.BoxGeometry((panHalfW + 0.04) * 2, 0.04, (panHalfD + 0.04) * 2),
-      this.materials.block
-    );
-    panFlange.position.y = panTopY - 0.02;
-    this.engineBlockGroup.add(panFlange);
-
-    // Pan side walls (tapered inward slightly at bottom)
-    const panMat = new THREE.MeshStandardMaterial({
-      color: 0x8c9baa, metalness: 0.80, roughness: 0.45,
-      bumpMap: this.castTex, bumpScale: 0.0025, name: 'Cast Pan'
-    });
-
-    [-panHalfW, panHalfW].forEach((xPos) => {
-      const side = new THREE.Mesh(
-        new THREE.BoxGeometry(0.055, panH, panHalfD * 2),
-        panMat
-      );
-      side.position.set(xPos, (panTopY + panBotY) / 2, 0);
-      this.engineBlockGroup.add(side);
-    });
-
-    [-panHalfD, panHalfD].forEach((zPos) => {
-      const end = new THREE.Mesh(
-        new THREE.BoxGeometry(panHalfW * 2 + 0.11, panH, 0.055),
-        panMat
-      );
-      end.position.set(0, (panTopY + panBotY) / 2, zPos);
-      this.engineBlockGroup.add(end);
-    });
-
-    // Pan bottom plate
-    const panBottom = new THREE.Mesh(
-      new THREE.BoxGeometry(panHalfW * 2 + 0.11, 0.040, panHalfD * 2 + 0.11),
-      panMat
-    );
-    panBottom.position.y = panBotY;
-    this.engineBlockGroup.add(panBottom);
-
-    // Oil pan PERIMETER FINS (vertical fins on all four sides — prominent in Image 3)
-    // Side fins (running front-to-back along X faces)
-    for (let z = -panHalfD + 0.06; z <= panHalfD - 0.06; z += 0.10) {
-      [-panHalfW - 0.025, panHalfW + 0.025].forEach((xPos) => {
-        const fin = new THREE.Mesh(
-          new THREE.BoxGeometry(0.025, panH * 0.80, 0.038),
-          panMat
-        );
-        fin.position.set(xPos, panTopY - panH * 0.58, z);
-        this.engineBlockGroup.add(fin);
-      });
-    }
-
-    // End fins (running left-right along Z faces)
-    for (let x = -panHalfW + 0.06; x <= panHalfW - 0.06; x += 0.10) {
-      [-panHalfD - 0.025, panHalfD + 0.025].forEach((zPos) => {
-        const fin = new THREE.Mesh(
-          new THREE.BoxGeometry(0.038, panH * 0.80, 0.025),
-          panMat
-        );
-        fin.position.set(x, panTopY - panH * 0.58, zPos);
-        this.engineBlockGroup.add(fin);
-      });
-    }
-
-    // Pan bolts around perimeter (visible flange bolts)
-    const panBoltAngles = 14;
-    for (let i = 0; i < panBoltAngles; i++) {
-      const t = i / panBoltAngles;
-      let bx, bz;
-      // Map evenly around the rectangular perimeter
-      if (t < 0.25)      { bx = panHalfW;  bz = -panHalfD + (t / 0.25) * panHalfD * 2; }
-      else if (t < 0.50) { bx = panHalfW - ((t - 0.25) / 0.25) * panHalfW * 2; bz = panHalfD; }
-      else if (t < 0.75) { bx = -panHalfW; bz = panHalfD - ((t - 0.50) / 0.25) * panHalfD * 2; }
-      else               { bx = -panHalfW + ((t - 0.75) / 0.25) * panHalfW * 2; bz = -panHalfD; }
-      const panBolt = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.022, 0.022, 0.06, 8),
-        this.materials.bolts
-      );
-      panBolt.position.set(bx, panTopY + 0.02, bz);
-      this.engineBlockGroup.add(panBolt);
-    }
-
-    // Oil drain plug
-    const drainPlug = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.042, 0.042, 0.055, 6),
-      this.materials.bolts
-    );
-    drainPlug.position.set(0.30, panBotY - 0.01, 0);
-    this.engineBlockGroup.add(drainPlug);
-
-    // Oil level sensor / dipstick tube boss
-    const dipstickBoss = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.030, 0.030, 0.14, 10),
-      this.materials.block
-    );
-    dipstickBoss.rotation.z = 0.3;
-    dipstickBoss.position.set(-0.82, -0.30, 0.30);
-    this.engineBlockGroup.add(dipstickBoss);
-
     this.root.add(this.engineBlockGroup);
 
     this.parts.block = {
       group: this.engineBlockGroup,
       explodeOffset: new THREE.Vector3(1.6, 0, 1.0),
-      name: 'Liquid-Cooled Engine Block & Perimeter-Finned Sump',
-      specs: 'A356-T6 Aluminum | Water Jacket | Iron Sleeve | 4-Bolt Mains | Finned Pan'
+      name: 'Liquid-Cooled Deep-Skirt Engine Block',
+      specs: 'A356-T6 Aluminum | 4-Bolt Cross-Bolted Mains | Cast Sleeve | MLS Deck Ring'
+    };
+  }
+
+  /* ================================================================
+     PRECISION FINNED OIL PAN / SUMP  (Blueprint Image 2 & 3)
+     Cast aluminum oil pan with flanged top, perimeter bolts,
+     11 longitudinal underside cooling fins, central hex drain plug,
+     translucent amber oil sump pool, and dipstick tube.
+     ================================================================ */
+  buildOilPan() {
+    this.oilPanGroup = new THREE.Group();
+    this.oilPanGroup.name = 'OilPan_Assembly';
+
+    const panTopY = -0.66;  // Gasket split line mating with block skirt
+    const panBotY = -1.06;  // Pan sump bottom floor plate
+    const panH = panTopY - panBotY; // 0.40
+    const panHalfW = 1.04;  // Flange outer half-width
+    const panHalfD = 0.56;  // Flange outer half-depth (matches block flange, clear of flywheel)
+
+    // ---- 1. Upper Mounting Flange (hollow rectangular frame) ----
+    const panFlangeShape = new THREE.Shape();
+    panFlangeShape.moveTo(-panHalfW, -panHalfD);
+    panFlangeShape.lineTo( panHalfW, -panHalfD);
+    panFlangeShape.lineTo( panHalfW,  panHalfD);
+    panFlangeShape.lineTo(-panHalfW,  panHalfD);
+    panFlangeShape.closePath();
+
+    const panHole = new THREE.Path();
+    const pInW = panHalfW - 0.12;
+    const pInD = panHalfD - 0.12;
+    panHole.moveTo(-pInW, -pInD);
+    panHole.lineTo( pInW, -pInD);
+    panHole.lineTo( pInW,  pInD);
+    panHole.lineTo(-pInW,  pInD);
+    panHole.closePath();
+    panFlangeShape.holes.push(panHole);
+
+    const panFlangeGeom = new THREE.ExtrudeGeometry(panFlangeShape, { depth: 0.05, bevelEnabled: false });
+    panFlangeGeom.rotateX(Math.PI / 2);
+    const flangeMesh = new THREE.Mesh(panFlangeGeom, this.materials.pan);
+    flangeMesh.position.y = panTopY;
+    this.oilPanGroup.add(flangeMesh);
+
+    // ---- 2. Pan Sump Tub Body (curved bowl / tapered walls) ----
+    // Side walls: tapers smoothly from flange down to sump floor
+    [-1, 1].forEach((side) => {
+      const wallShape = new THREE.Shape();
+      wallShape.moveTo(0.94, panTopY - 0.04);
+      wallShape.lineTo(0.74, panBotY + 0.04);
+      wallShape.lineTo(0.68, panBotY + 0.04);
+      wallShape.lineTo(0.86, panTopY - 0.04);
+      wallShape.closePath();
+
+      const wallGeom = new THREE.ExtrudeGeometry(wallShape, { depth: (panHalfD - 0.08) * 2, bevelEnabled: false });
+      wallGeom.translate(0, 0, -(panHalfD - 0.08));
+      const sideWall = new THREE.Mesh(wallGeom, this.materials.pan);
+      if (side === -1) sideWall.scale.set(-1, 1, 1);
+      this.oilPanGroup.add(sideWall);
+    });
+
+    // Front & rear end walls
+    [-1, 1].forEach((side) => {
+      const endWall = new THREE.Mesh(
+        new THREE.BoxGeometry((0.74 + 0.06) * 2, panH - 0.04, 0.06),
+        this.materials.pan
+      );
+      endWall.position.set(0, (panTopY + panBotY) / 2, side * (panHalfD - 0.08));
+      this.oilPanGroup.add(endWall);
+    });
+
+    // Sump bottom floor plate
+    const bottomFloor = new THREE.Mesh(
+      new THREE.BoxGeometry(0.76 * 2, 0.04, (panHalfD - 0.08) * 2),
+      this.materials.pan
+    );
+    bottomFloor.position.y = panBotY;
+    this.oilPanGroup.add(bottomFloor);
+
+    // ---- 3. Longitudinal Underside Cooling Fins (Key Blueprint Feature) ----
+    // In Blueprint Image 3, 11 vertical fins protrude DOWNWARDS from the bottom
+    // of the oil pan into the airflow, spaced evenly across the width.
+    const numFins = 11;
+    const finXSpread = 1.20; // from x = -0.60 to +0.60
+    const finLength = (panHalfD - 0.10) * 2; // running front-to-back along Z
+
+    for (let i = 0; i < numFins; i++) {
+      const t = i / (numFins - 1); // 0 to 1
+      const xPos = -finXSpread / 2 + t * finXSpread;
+
+      // Fins follow bottom camber: deeper in the middle (0.13), shallower at edges (0.07)
+      const depthFactor = 1.0 - Math.pow(Math.abs(t - 0.5) * 2, 2) * 0.45;
+      const finH = 0.13 * depthFactor;
+      const finThickness = 0.022;
+
+      // Center fin has a gap in the middle for the hex drain plug
+      if (Math.abs(xPos) < 0.04) {
+        // Front half of center fin
+        const finFront = new THREE.Mesh(
+          new THREE.BoxGeometry(finThickness, finH, (finLength - 0.22) / 2),
+          this.materials.pan
+        );
+        finFront.position.set(xPos, panBotY - finH / 2, (finLength + 0.22) / 4);
+        this.oilPanGroup.add(finFront);
+
+        // Rear half of center fin
+        const finRear = new THREE.Mesh(
+          new THREE.BoxGeometry(finThickness, finH, (finLength - 0.22) / 2),
+          this.materials.pan
+        );
+        finRear.position.set(xPos, panBotY - finH / 2, -(finLength + 0.22) / 4);
+        this.oilPanGroup.add(finRear);
+      } else {
+        const fin = new THREE.Mesh(
+          new THREE.BoxGeometry(finThickness, finH, finLength),
+          this.materials.pan
+        );
+        fin.position.set(xPos, panBotY - finH / 2, 0);
+        this.oilPanGroup.add(fin);
+      }
+    }
+
+    // ---- 4. Magnetic Hex Drain Plug (centered on bottom between fins) ----
+    const drainBoss = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.065, 0.065, 0.04, 16),
+      this.materials.pan
+    );
+    drainBoss.position.set(0, panBotY - 0.02, 0);
+    this.oilPanGroup.add(drainBoss);
+
+    // Copper crush washer
+    const crushWasher = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.068, 0.068, 0.012, 16),
+      this.materials.bushing
+    );
+    crushWasher.position.set(0, panBotY - 0.042, 0);
+    this.oilPanGroup.add(crushWasher);
+
+    // Hex plug bolt head
+    const drainPlug = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.052, 0.052, 0.048, 6),
+      this.materials.bolts
+    );
+    drainPlug.position.set(0, panBotY - 0.068, 0);
+    this.oilPanGroup.add(drainPlug);
+
+    // ---- 5. Perimeter Flange Bolts (clamping pan to skirt) ----
+    const boltPoints = [
+      // Left side (-X)
+      [-panHalfW + 0.06, -panHalfD + 0.08],
+      [-panHalfW + 0.06, -panHalfD * 0.30],
+      [-panHalfW + 0.06,  panHalfD * 0.30],
+      [-panHalfW + 0.06,  panHalfD - 0.08],
+      // Right side (+X)
+      [ panHalfW - 0.06, -panHalfD + 0.08],
+      [ panHalfW - 0.06, -panHalfD * 0.30],
+      [ panHalfW - 0.06,  panHalfD * 0.30],
+      [ panHalfW - 0.06,  panHalfD - 0.08],
+      // Front (+Z)
+      [-panHalfW * 0.45,  panHalfD - 0.05],
+      [ panHalfW * 0.45,  panHalfD - 0.05],
+      // Rear (-Z)
+      [-panHalfW * 0.45, -panHalfD + 0.05],
+      [ panHalfW * 0.45, -panHalfD + 0.05]
+    ];
+
+    boltPoints.forEach(([bx, bz]) => {
+      // Bolt shank through flange
+      const shank = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.022, 0.022, 0.07, 10),
+        this.materials.bolts
+      );
+      shank.position.set(bx, panTopY - 0.025, bz);
+      this.oilPanGroup.add(shank);
+
+      // Flange bolt head with integrated washer (pointing downwards under flange)
+      const head = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.042, 0.042, 0.035, 6),
+        this.materials.bolts
+      );
+      head.position.set(bx, panTopY - 0.065, bz);
+      this.oilPanGroup.add(head);
+    });
+
+    // ---- 6. Internal Sump Lubricating Oil Reservoir (translucent amber) ----
+    const oilPool = new THREE.Mesh(
+      new THREE.BoxGeometry(0.70 * 2, 0.24, (panHalfD - 0.10) * 2),
+      this.materials.oil
+    );
+    oilPool.position.set(0, panBotY + 0.14, 0);
+    this.oilPanGroup.add(oilPool);
+
+    // ---- 7. Oil Dipstick Assembly ----
+    const dipstickCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-0.92, panTopY + 0.04, 0.25),
+      new THREE.Vector3(-0.96, 0.40, 0.25),
+      new THREE.Vector3(-0.92, 1.40, 0.25),
+      new THREE.Vector3(-0.86, 2.50, 0.25)
+    ]);
+    const dipstickTubeGeom = new THREE.TubeGeometry(dipstickCurve, 24, 0.016, 8, false);
+    const dipstickTube = new THREE.Mesh(dipstickTubeGeom, this.materials.block);
+    this.oilPanGroup.add(dipstickTube);
+
+    // Dipstick handle pull ring (yellow automotive ring)
+    const handleRing = new THREE.Mesh(
+      new THREE.TorusGeometry(0.045, 0.012, 8, 20),
+      new THREE.MeshStandardMaterial({ color: 0xffcc00, roughness: 0.3, metalness: 0.1, name: 'Dipstick Ring' })
+    );
+    handleRing.position.set(-0.86, 2.56, 0.25);
+    this.oilPanGroup.add(handleRing);
+
+    this.root.add(this.oilPanGroup);
+
+    this.parts.oilPan = {
+      group: this.oilPanGroup,
+      explodeOffset: new THREE.Vector3(0, -1.2, 0),
+      name: 'Cast Aluminum Finned Sump',
+      specs: 'A356-T6 Aluminum | 11 Longitudinal Cooling Fins | M14 Magnetic Drain Plug | 3.8L Sump'
     };
   }
 
