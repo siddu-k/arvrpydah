@@ -3,411 +3,273 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="description" content="Photorealistic 4-stroke internal combustion engine 3D cross-section with real-time slider-crank kinematics, assembly/disassembly exploded view, and WebXR AR/VR integration in shadcn zinc-black theme.">
+  <meta name="description" content="AERO-4 XR Hub | WebXR 3D CAD Engineering Platform. Explore photorealistic mechanical assemblies with real-time kinematics, exploded views, and 6-DoF VR/AR headset support.">
   <meta name="theme-color" content="#09090b">
-  <title>AERO-4 | 4-Stroke Engine CAD Cross-Section & 3D Valvetrain</title>
+  <title>AERO-4 | Interactive 3D & WebXR Engineering Model Hub</title>
+  
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="dashboard.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23ffffff%22><path d=%22M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 17.93V15a3 3 0 0 0-2 0v4.93A8 8 0 0 1 4.07 13H9a3 3 0 0 0 0-2H4.07A8 8 0 0 1 11 4.07V9a3 3 0 0 0 2 0V4.07A8 8 0 0 1 19.93 11H15a3 3 0 0 0 0 2h4.93A8 8 0 0 1 13 19.93z%22/></svg>">
   
   <!-- Modern Shadcn Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-  <!-- Import Map for Three.js and Addons -->
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-    }
-  }
-  </script>
 </head>
-<body class="theme-black">
-  <!-- 3D Canvas Mount Point -->
-  <div id="canvas-container"></div>
+<body class="theme-black dashboard-body">
 
-  <!-- AR Toast Message -->
-  <div id="ar-toast" class="ar-toast">Aim device at a flat surface and tap to place the engine.</div>
+  <!-- Background Decorative Grid & Gradients -->
+  <div class="dash-bg-grid"></div>
+  <div class="dash-glow-orb orb-1"></div>
+  <div class="dash-glow-orb orb-2"></div>
 
-  <!-- Interactive HUD Overlay -->
-  <div class="ui-overlay">
+  <!-- Main Container -->
+  <div class="dash-container">
 
-    <!-- Top Header Bar -->
-    <header class="header-bar interactive">
-      <div class="brand-section">
-        <div class="brand-badge">AERO-4</div>
-        <div class="brand-titles">
-          <h1>4-STROKE ENGINE</h1>
-          <span class="brand-sub">DOHC V2 • PRECISION CAD</span>
+    <!-- Top Navigation Header -->
+    <header class="dash-navbar">
+      <div class="dash-nav-brand">
+        <div class="dash-badge">AERO-4</div>
+        <div class="dash-brand-info">
+          <h1>XR MODEL HUB</h1>
+          <span class="dash-brand-sub">PRECISION MECHANICAL CAD • WEBXR IMMERSIVE</span>
         </div>
-      </div>
-
-      <div class="header-actions">
-        <!-- Audio Toggle Button -->
-        <button id="btn-audio" class="btn btn-icon" title="Toggle Engine Audio">
-          <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
-        </button>
-
-        <!-- WebXR AR Button -->
-        <button id="btn-enter-ar" class="btn btn-icon" title="Enter AR (Pass-Through Tabletop)">
-          <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M7 2v2H3v4H1V4a2 2 0 0 1 2-2h4zm14 0a2 2 0 0 1 2 2v4h-2V4h-4V2h4zM3 20v-4H1v4a2 2 0 0 0 2 2h4v-2H3zm18 0h-4v2h4a2 2 0 0 0 2-2v-4h-2v4zM12 6a6 6 0 1 0 6 6 6 6 0 0 0-6-6zm0 10a4 4 0 1 1 4-4 4 4 0 0 1-4 4z"/></svg>
-        </button>
-
-        <!-- WebXR VR Button -->
-        <button id="btn-enter-vr" class="btn btn-icon btn-primary" title="Enter Immersive 6-DoF VR">
-          <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M21.5 7h-19C1.1 7 0 8.1 0 9.5v5C0 15.9 1.1 17 2.5 17H7l2.5-3h5l2.5 3h4.5c1.4 0 2.5-1.1 2.5-2.5v-5C24 8.1 22.9 7 21.5 7zM6 14.5c-1.4 0-2.5-1.1-2.5-2.5s1.1-2.5 2.5-2.5 2.5 1.1 2.5 2.5-1.1 2.5-2.5 2.5zm12 0c-1.4 0-2.5-1.1-2.5-2.5s1.1-2.5 2.5-2.5 2.5 1.1 2.5 2.5-1.1 2.5-2.5 2.5z"/></svg>
-        </button>
       </div>
     </header>
 
-    <!-- Main Dashboard Body -->
-    <div class="main-dashboard">
+    <!-- Hero Section -->
+    <section class="dash-hero">
+      <div class="dash-hero-badge">
+        <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M12 2l-5.5 9h11z M12 22l5.5-9h-11z"/></svg>
+        <span>STANDALONE 3D WEBXR CAD CATALOG</span>
+      </div>
+      <h2 class="dash-hero-title">Interactive Engineering & Powertrain Models</h2>
+      <p class="dash-hero-desc">
+        Select an engineering assembly to enter its dedicated high-fidelity 3D inspection workspace with real-time mathematical kinematics, exploded CAD assembly sequencing, and 6-DoF VR controller support.
+      </p>
 
-      <!-- LEFT PANEL: TELEMETRY & KINEMATICS -->
-      <div class="panel interactive">
-        <div class="panel-header">
-          <span class="panel-title">TELEMETRY</span>
-          <button id="btn-play" class="btn btn-icon btn-primary active" title="Play / Pause Engine Animation">
-            <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-          </button>
+      <!-- Filter / Category Tabs -->
+      <div class="dash-filter-bar">
+        <button class="filter-tab active" data-filter="all">ALL MODELS</button>
+        <button class="filter-tab" data-filter="powertrain">POWERTRAIN</button>
+        <button class="filter-tab" data-filter="forced-induction">FORCED INDUCTION</button>
+        <button class="filter-tab" data-filter="drivetrain">DRIVETRAIN</button>
+      </div>
+    </section>
+
+    <!-- Models Grid Section -->
+    <section class="dash-models-grid" id="models-grid">
+
+      <!-- Model Card 1: 4-Stroke Piston & Valvetrain (ACTIVE) -->
+      <div class="model-card active-card" data-category="powertrain">
+        <div class="model-card-badge-row">
+          <span class="badge-status-active">
+            <span class="pulse-dot"></span>
+            ACTIVE 3D MODEL
+          </span>
+          <span class="badge-xr">VR + AR 6-DoF</span>
         </div>
 
-        <!-- Tachometer -->
-        <div class="tachometer-box">
-          <div class="tacho-dial">
-            <div class="tacho-arc"></div>
-            <div id="tacho-needle" class="tacho-needle"></div>
-            <div class="tacho-center-pin"></div>
+        <div class="model-preview-box">
+          <div class="preview-wireframe-icon">
+            <svg viewBox="0 0 24 24" width="48" height="48"><path fill="currentColor" d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 17.93V15a3 3 0 0 0-2 0v4.93A8 8 0 0 1 4.07 13H9a3 3 0 0 0 0-2H4.07A8 8 0 0 1 11 4.07V9a3 3 0 0 0 2 0V4.07A8 8 0 0 1 19.93 11H15a3 3 0 0 0 0 2h4.93A8 8 0 0 1 13 19.93z"/></svg>
           </div>
-          <div class="rpm-readout">
-            <span id="rpm-value" class="rpm-val">1,200 RPM</span>
-          </div>
+          <div class="preview-tag">4-STROKE DOHC V2</div>
         </div>
 
-        <!-- RPM Slider -->
-        <div class="control-group">
-          <div class="control-label">
-            <span>ENGINE RPM</span>
-          </div>
-          <input type="range" id="rpm-slider" class="slider" min="60" max="6000" step="20" value="1200">
-        </div>
-
-        <!-- 4-Stroke Stage Indicator -->
-        <div class="control-group">
-          <div class="control-label">
-            <span>CYCLE STAGE</span>
-            <span id="hud-phase" class="control-val">INTAKE</span>
-          </div>
-          <div class="stroke-pills">
-            <div id="pill-intake" class="stroke-pill active">
-              <span class="pill-name">1. INTAKE</span>
-              <span class="pill-desc">0° – 180°</span>
-            </div>
-            <div id="pill-compression" class="stroke-pill">
-              <span class="pill-name">2. COMPRESS</span>
-              <span class="pill-desc">180° – 360°</span>
-            </div>
-            <div id="pill-power" class="stroke-pill">
-              <span class="pill-name">3. POWER</span>
-              <span class="pill-desc">360° – 540°</span>
-            </div>
-            <div id="pill-exhaust" class="stroke-pill">
-              <span class="pill-name">4. EXHAUST</span>
-              <span class="pill-desc">540° – 720°</span>
+        <div class="model-content">
+          <div class="model-header-row">
+            <div>
+              <h3 class="model-title">4-Stroke Engine Assembly</h3>
+              <span class="model-category">Powertrain Engineering • Internal Combustion</span>
             </div>
           </div>
-          <div class="stroke-progress-container">
-            <div id="stroke-progress-fill" class="stroke-progress-fill"></div>
-          </div>
-        </div>
 
-        <!-- Telemetry Stats -->
-        <div class="telemetry-grid">
-          <div class="stat-item">
-            <div class="stat-label">PRESSURE</div>
-            <div id="hud-pressure" class="stat-val">1.0 bar</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">TEMP</div>
-            <div id="hud-temp" class="stat-val">300 K</div>
-          </div>
-        </div>
+          <p class="model-description">
+            Complete slider-crank kinematics cross-section featuring 21.8° canted poppet valves, dual overhead camshafts, bronze valve guides, sickle counterweights, and fracture-split rod cap.
+          </p>
 
-        <!-- Manual Crank Angle Scrubber -->
-        <div class="control-group">
-          <div class="control-label">
-            <span>CRANK ANGLE</span>
-            <span id="crank-angle-value" class="control-val">0°</span>
+          <div class="model-specs-grid">
+            <div class="spec-cell">
+              <span class="spec-lbl">BORE x STROKE</span>
+              <span class="spec-txt">85 mm x 88 mm</span>
+            </div>
+            <div class="spec-cell">
+              <span class="spec-lbl">VALVETRAIN</span>
+              <span class="spec-txt">DOHC 4-Valve Pent-Roof</span>
+            </div>
+            <div class="spec-cell">
+              <span class="spec-lbl">COMPRESSION</span>
+              <span class="spec-txt">10.5 : 1 Ratio</span>
+            </div>
+            <div class="spec-cell">
+              <span class="spec-lbl">XR INTERACTION</span>
+              <span class="spec-txt">6-DoF VR Laser & Squeeze</span>
+            </div>
           </div>
-          <input type="range" id="crank-slider" class="slider" min="0" max="720" step="1" value="0">
+
+          <div class="model-tags-row">
+            <span class="feature-tag">Real-Time Kinematics</span>
+            <span class="feature-tag">Staged Exploded View</span>
+            <span class="feature-tag">In-VR 3D HUD</span>
+            <span class="feature-tag">Component Focus</span>
+          </div>
+
+          <a href="models/piston-engine/index.html" class="launch-btn" title="Launch 4-Stroke Engine 3D Model">
+            <span>LAUNCH 3D / ARVR MODEL</span>
+            <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
+          </a>
         </div>
       </div>
 
-      <!-- RIGHT PANEL: 3D COMPONENTS & SYSTEM CONTROLS -->
-      <div class="panel interactive panel-right">
-        <!-- Shadcn Tabs Header -->
-        <div class="panel-tabs">
-          <button id="tab-btn-components" class="tab-btn active" data-tab="components" title="Explore 3D Components">
-            <svg viewBox="0 0 24 24" width="13" height="13"><path fill="currentColor" d="M12 2l-5.5 9h11z M12 22l5.5-9h-11z"/></svg>
-            <span>3D PARTS</span>
-          </button>
-          <button id="tab-btn-controls" class="tab-btn" data-tab="controls" title="System Controls">
-            <svg viewBox="0 0 24 24" width="13" height="13"><path fill="currentColor" d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></svg>
-            <span>SYSTEM</span>
-          </button>
+      <!-- Model Card 2: Twin-Scroll Turbocharger (ROADMAP) -->
+      <div class="model-card roadmap-card" data-category="forced-induction">
+        <div class="model-card-badge-row">
+          <span class="badge-status-roadmap">COMING NEXT</span>
+          <span class="badge-xr">XR READY</span>
         </div>
 
-        <!-- TAB CONTENT 1: 3D COMPONENT EXPLORER (DIRECT CLICK TO FOCUS) -->
-        <div id="tab-content-components" class="tab-content active">
-          <div class="section-sub-header">
-            <span>CLICK PART TO FOCUS</span>
-            <span class="badge-count">11 PARTS</span>
+        <div class="model-preview-box preview-turbo">
+          <div class="preview-wireframe-icon">
+            <svg viewBox="0 0 24 24" width="48" height="48"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 16.93V15h-2v3.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 11.2V9l-5.6-2.24C4.85 4.3 8.16 2.5 12 2.5c4.14 0 7.5 3.36 7.5 7.5 0 2.91-1.66 5.43-4.08 6.67L13 15v3.93z"/></svg>
           </div>
+          <div class="preview-tag">TURBOCHARGER VOLUTE</div>
+        </div>
 
-          <div class="component-list" id="component-list">
-            <div class="component-item" data-part="crankshaft" title="Focus Crankshaft">
-              <div class="comp-icon-box">
-                <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 17.93V15a3 3 0 0 0-2 0v4.93A8 8 0 0 1 4.07 13H9a3 3 0 0 0 0-2H4.07A8 8 0 0 1 11 4.07V9a3 3 0 0 0 2 0V4.07A8 8 0 0 1 19.93 11H15a3 3 0 0 0 0 2h4.93A8 8 0 0 1 13 19.93z"/></svg>
-              </div>
-              <div class="comp-info">
-                <div class="comp-title">Crankshaft</div>
-                <div class="comp-sub">Sickle Counterweights & Journal</div>
-              </div>
-              <div class="comp-action">
-                <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
-              </div>
-            </div>
-
-            <div class="component-item" data-part="piston" title="Focus Piston Assembly">
-              <div class="comp-icon-box">
-                <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M5 4h14a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-2v5a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-5H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm1 2v5h12V6H6zm3 7v5h6v-5H9z"/></svg>
-              </div>
-              <div class="comp-info">
-                <div class="comp-title">Piston Assembly</div>
-                <div class="comp-sub">Ø85 mm Slipper-Skirt Forged 2618</div>
-              </div>
-              <div class="comp-action">
-                <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
-              </div>
-            </div>
-
-            <div class="component-item" data-part="conRod" title="Focus Connecting Rod">
-              <div class="comp-icon-box">
-                <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M12 2a4 4 0 0 0-4 4c0 1.38.7 2.6 1.76 3.32L9.1 14.68A5.002 5.002 0 0 0 7 19a5 5 0 0 0 10 0 5.002 5.002 0 0 0-2.1-4.32l-.66-5.36A4.004 4.004 0 0 0 16 6a4 4 0 0 0-4-4zm0 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm-1.12 5.95a3.99 3.99 0 0 0 2.24 0l.63 5.14a4.96 4.96 0 0 0-3.5 0l.63-5.14zM12 16a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/></svg>
-              </div>
-              <div class="comp-info">
-                <div class="comp-title">Connecting Rod</div>
-                <div class="comp-sub">Forged 4340 H-Beam & Bushing</div>
-              </div>
-              <div class="comp-action">
-                <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
-              </div>
-            </div>
-
-            <div class="component-item" data-part="rodCap" title="Focus Rod Cap & Bolts">
-              <div class="comp-icon-box">
-                <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M12 5a7 7 0 0 0-7 7v3h2v4h2v-4h6v4h2v-4h2v-3a7 7 0 0 0-7-7zm-5 7a5 5 0 0 1 10 0v1H7v-1z"/></svg>
-              </div>
-              <div class="comp-info">
-                <div class="comp-title">Rod Cap & Bolts</div>
-                <div class="comp-sub">Serrated Fracture-Split Big End</div>
-              </div>
-              <div class="comp-action">
-                <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
-              </div>
-            </div>
-
-            <div class="component-item" data-part="camshaft" title="Focus DOHC Camshafts">
-              <div class="comp-icon-box">
-                <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M6 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm12 0a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm-7 5h2v13h-2V8zm-5 6a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm12 0a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>
-              </div>
-              <div class="comp-info">
-                <div class="comp-title">DOHC Camshafts</div>
-                <div class="comp-sub">Dual Billet Cams & Sprockets</div>
-              </div>
-              <div class="comp-action">
-                <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
-              </div>
-            </div>
-
-            <div class="component-item" data-part="intakeValve" title="Focus Intake Valve">
-              <div class="comp-icon-box">
-                <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M11 2h2v12.2a4 4 0 0 1 2.8 3.8h-7.6A4 4 0 0 1 11 14.2V2zm-3 18h8v2H8v-2z"/></svg>
-              </div>
-              <div class="comp-info">
-                <div class="comp-title">Canted Intake Valve</div>
-                <div class="comp-sub">Ø36 mm Tulip Valve & Dual Springs</div>
-              </div>
-              <div class="comp-action">
-                <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
-              </div>
-            </div>
-
-            <div class="component-item" data-part="exhaustValve" title="Focus Exhaust Valve">
-              <div class="comp-icon-box">
-                <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M11 2h2v12.2a4 4 0 0 1 2.8 3.8h-7.6A4 4 0 0 1 11 14.2V2zm-3 18h8v2H8v-2z"/></svg>
-              </div>
-              <div class="comp-info">
-                <div class="comp-title">Canted Exhaust Valve</div>
-                <div class="comp-sub">Ø31 mm Inconel 751 Superalloy</div>
-              </div>
-              <div class="comp-action">
-                <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
-              </div>
-            </div>
-
-            <div class="component-item" data-part="sparkPlug" title="Focus Spark Plug">
-              <div class="comp-icon-box">
-                <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M7 2h10v2H7V2zm1 3h8v2H8V5zm2 3h4v3h-4V8zm-1 4h6l-1 5h-4l-1-5zm2 6h2v4h-2v-4z"/></svg>
-              </div>
-              <div class="comp-info">
-                <div class="comp-title">Spark Plug</div>
-                <div class="comp-sub">Ribbed Ceramic & Electrode Arc</div>
-              </div>
-              <div class="comp-action">
-                <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
-              </div>
-            </div>
-
-            <div class="component-item" data-part="cylinderHead" title="Focus Cylinder Head">
-              <div class="comp-icon-box">
-                <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M3 4h18v3H3V4zm1 4h16v12H4V8zm2 2v8h12v-8H6z"/></svg>
-              </div>
-              <div class="comp-info">
-                <div class="comp-title">Cylinder Head</div>
-                <div class="comp-sub">Pent-Roof Chamber & Flow Ports</div>
-              </div>
-              <div class="comp-action">
-                <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
-              </div>
-            </div>
-
-            <div class="component-item" data-part="block" title="Focus Engine Block">
-              <div class="comp-icon-box">
-                <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M3 3h18v18H3V3zm2 2v14h14V5H5zm3 3h8v8H8V8z"/></svg>
-              </div>
-              <div class="comp-info">
-                <div class="comp-title">Cylinder Block</div>
-                <div class="comp-sub">Siamese Liner & Main Caps</div>
-              </div>
-              <div class="comp-action">
-                <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
-              </div>
-            </div>
-
-            <div class="component-item" data-part="oilPan" title="Focus Oil Pan">
-              <div class="comp-icon-box">
-                <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M4 6h16l-2 12H6L4 6zm2 2l1.33 8h9.34L18 8H6zm-3-4h18v2H3V4z"/></svg>
-              </div>
-              <div class="comp-info">
-                <div class="comp-title">Oil Pan Sump</div>
-                <div class="comp-sub">Cast Aluminum Sump & Baffle</div>
-              </div>
-              <div class="comp-action">
-                <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
-              </div>
+        <div class="model-content">
+          <div class="model-header-row">
+            <div>
+              <h3 class="model-title">Twin-Scroll Turbocharger</h3>
+              <span class="model-category">Forced Induction • Aerodynamic Flow</span>
             </div>
           </div>
 
-          <!-- Quick Reset Camera Button -->
-          <button id="btn-reset-part-view" class="btn btn-reset-view" title="Reset View to Full Engine">
-            <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
-            <span>RESET TO FULL VIEW</span>
+          <p class="model-description">
+            Variable-geometry dual ball-bearing turbocharger with split exhaust turbine housing, 5-axis CNC billet compressor wheel, wastegate actuator, and fluid flow cutaways.
+          </p>
+
+          <div class="model-specs-grid">
+            <div class="spec-cell">
+              <span class="spec-lbl">TURBINE WHEEL</span>
+              <span class="spec-txt">Inconel 713C Cast</span>
+            </div>
+            <div class="spec-cell">
+              <span class="spec-lbl">COMPRESSOR</span>
+              <span class="spec-txt">Forged Milled Billet</span>
+            </div>
+            <div class="spec-cell">
+              <span class="spec-lbl">MAX VELOCITY</span>
+              <span class="spec-txt">185,000 RPM</span>
+            </div>
+            <div class="spec-cell">
+              <span class="spec-lbl">BOOST PRESSURE</span>
+              <span class="spec-txt">2.4 bar peak</span>
+            </div>
+          </div>
+
+          <div class="model-tags-row">
+            <span class="feature-tag">Twin-Scroll Volute</span>
+            <span class="feature-tag">Streamline Flow</span>
+            <span class="feature-tag">Thermal Heat Map</span>
+          </div>
+
+          <button class="launch-btn disabled" disabled>
+            <span>IN DEVELOPMENT</span>
           </button>
         </div>
+      </div>
 
-        <!-- TAB CONTENT 2: SYSTEM CONTROLS (CUTAWAY, EXPLODE, CAMERA) -->
-        <div id="tab-content-controls" class="tab-content">
-          <!-- Cross-Section Cutaway Selection -->
-          <div class="control-group">
-            <div class="control-label">
-              <span>CUTAWAY MODE</span>
-            </div>
-            <div class="icon-button-row">
-              <button class="btn btn-icon cut-mode-btn" data-mode="quarter" title="Quarter Cut (90°)">
-                <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8v8h8c0 4.41-3.59 8-8 8z"/></svg>
-              </button>
-              <button class="btn btn-icon cut-mode-btn active" data-mode="half" title="Half Cut (180°)">
-                <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18V4c4.41 0 8 3.59 8 8s-3.59 8-8 8z"/></svg>
-              </button>
-              <button class="btn btn-icon cut-mode-btn" data-mode="xray" title="X-Ray Glass Mode">
-                <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
-              </button>
-              <button class="btn btn-icon cut-mode-btn" data-mode="solid" title="Full Solid Cylinder">
-                <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
-              </button>
-            </div>
-          </div>
-
-          <!-- Assemble & Disassemble (Exploded View) -->
-          <div class="control-group">
-            <div class="control-label">
-              <span>EXPLODE / ASSEMBLE</span>
-              <span id="explode-value" class="control-val">0%</span>
-            </div>
-            <div class="slider-with-icon">
-              <input type="range" id="explode-slider" class="slider" min="0" max="100" step="1" value="0">
-              <button id="btn-auto-explode" class="btn btn-icon" title="Auto Animate Exploded View">
-                <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
-              </button>
-            </div>
-            <div class="explode-actions">
-              <button id="btn-assemble" class="btn btn-explode-action" title="Assemble Engine to 0%">ASSEMBLE</button>
-              <button id="btn-explode" class="btn btn-explode-action" title="Explode Engine to 100%">EXPLODE</button>
-            </div>
-          </div>
-
-          <!-- Camera Angle Presets -->
-          <div class="control-group">
-            <div class="control-label">
-              <span>CAMERA VIEWS</span>
-            </div>
-            <div class="icon-button-row">
-              <button class="btn btn-icon cam-preset-btn" data-view="iso" title="Isometric View">
-                <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3z"/></svg>
-              </button>
-              <button class="btn btn-icon cam-preset-btn" data-view="cutaway" title="Side Cross-Section View">
-                <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14V7l5 5-5 5z"/></svg>
-              </button>
-              <button class="btn btn-icon cam-preset-btn" data-view="valvetrain" title="Top Valvetrain View">
-                <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
-              </button>
-              <button class="btn btn-icon cam-preset-btn" data-view="crankcase" title="Bottom Crankcase View">
-                <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
-              </button>
-            </div>
-          </div>
-
-          <!-- Active Theme Pill -->
-          <div class="control-group">
-            <div class="theme-info-pill">
-              <span class="theme-glow-dot"></span>
-              <span>PREMIUM SHADCN ZINC-BLACK</span>
-            </div>
-          </div>
+      <!-- Model Card 3: Dual-Clutch Transmission (ROADMAP) -->
+      <div class="model-card roadmap-card" data-category="drivetrain">
+        <div class="model-card-badge-row">
+          <span class="badge-status-roadmap">IN DEVELOPMENT</span>
+          <span class="badge-xr">XR READY</span>
         </div>
 
+        <div class="model-preview-box preview-trans">
+          <div class="preview-wireframe-icon">
+            <svg viewBox="0 0 24 24" width="48" height="48"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+          </div>
+          <div class="preview-tag">7-SPEED DCT GEARBOX</div>
+        </div>
+
+        <div class="model-content">
+          <div class="model-header-row">
+            <div>
+              <h3 class="model-title">Dual-Clutch Transmission</h3>
+              <span class="model-category">Drivetrain Systems • 7-Speed Electro-Hydraulic</span>
+            </div>
+          </div>
+
+          <p class="model-description">
+            Concentric dual input shafts, multi-plate wet clutch pack, helical gear meshes, synchronizer sleeves, and shift fork actuation with dynamic torque flow visualization.
+          </p>
+
+          <div class="model-specs-grid">
+            <div class="spec-cell">
+              <span class="spec-lbl">GEAR RATIOS</span>
+              <span class="spec-txt">7 Forward + Reverse</span>
+            </div>
+            <div class="spec-cell">
+              <span class="spec-lbl">CLUTCH PACK</span>
+              <span class="spec-txt">Wet Multi-Plate Dual</span>
+            </div>
+            <div class="spec-cell">
+              <span class="spec-lbl">SHIFT DURATION</span>
+              <span class="spec-txt">80 ms Direct Shift</span>
+            </div>
+            <div class="spec-cell">
+              <span class="spec-lbl">DIFFERENTIAL</span>
+              <span class="spec-txt">Torque Vectoring e-LSD</span>
+            </div>
+          </div>
+
+          <div class="model-tags-row">
+            <span class="feature-tag">Concentric Shafts</span>
+            <span class="feature-tag">Synchronizer Rings</span>
+            <span class="feature-tag">Gear Mesh Animation</span>
+          </div>
+
+          <button class="launch-btn disabled" disabled>
+            <span>IN DEVELOPMENT</span>
+          </button>
+        </div>
       </div>
 
-    </div>
+    </section>
 
-    <!-- Part Inspection Popup Card (Shown on 3D Raycast or Side Panel Click) -->
-    <div id="part-info-card" class="part-info-card hidden interactive">
-      <div class="part-card-header">
-        <span class="part-badge">COMPONENT SPECIFICATION</span>
-        <button id="btn-close-card" class="btn-close-card" title="Close">✕</button>
+    <!-- Footer -->
+    <footer class="dash-footer">
+      <div class="footer-left">
+        <span class="footer-brand">AERO-4 XR PLATFORM</span>
+        <span class="footer-sub">Scalable WebGL & WebXR Engineering Architecture</span>
       </div>
-      <div id="part-name" class="part-title">Forged Aluminum Piston</div>
-      <div id="part-specs" class="part-specs-text">
-        Bore: 85.0 mm | Compression Height: 32 mm | Alloy: 2618-T6 High Thermal Aluminum
+      <div class="footer-right">
+        <span class="footer-note">Meta Quest 2/3/Pro • Apple Vision Pro • HTC Vive • Valve Index • ARCore</span>
       </div>
-    </div>
+    </footer>
 
   </div>
 
-  <!-- Main ES Module Script -->
-  <script type="module" src="js/app.js"></script>
+  <script>
+    // Filter Tabs Functionality
+    document.querySelectorAll('.filter-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        const filter = tab.dataset.filter;
+        const cards = document.querySelectorAll('.model-card');
+
+        cards.forEach(card => {
+          if (filter === 'all' || card.dataset.category === filter) {
+            card.style.display = 'flex';
+          } else {
+            card.style.display = 'none';
+          }
+        });
+      });
+    });
+  </script>
 </body>
 </html>
