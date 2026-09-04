@@ -38,8 +38,8 @@ class EngineApp {
     // Responsive resize
     window.addEventListener('resize', () => this.onWindowResize());
 
-    // Default to clean White Studio background
-    this.setAppTheme('white');
+    // Default to Premium Shadcn Zinc-Black Theme
+    this.setAppTheme('black');
 
     // Start animation loop with WebXR renderer loop
     this.renderer.setAnimationLoop((time, frame) => this.render(time, frame));
@@ -47,13 +47,13 @@ class EngineApp {
 
   initScene() {
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0xffffff);
+    this.scene.background = new THREE.Color(0x09090b);
 
-    // Radial studio floor (white-theme defaults)
+    // Radial studio floor (Shadcn Dark defaults)
     const floorGeom = new THREE.CircleGeometry(10, 64);
     this.floorMat = new THREE.MeshStandardMaterial({
-      color: 0xf0f3f7,
-      roughness: 0.65,
+      color: 0x0c0c0e,
+      roughness: 0.85,
       metalness: 0.2
     });
     this.floor = new THREE.Mesh(floorGeom, this.floorMat);
@@ -62,10 +62,10 @@ class EngineApp {
     this.floor.receiveShadow = true;
     this.scene.add(this.floor);
 
-    // Floor grid (white-theme defaults)
-    this.grid = new THREE.GridHelper(16, 32, 0xc8cfdb, 0xc8cfdb);
+    // Floor grid (Shadcn Dark defaults)
+    this.grid = new THREE.GridHelper(16, 32, 0x27272a, 0x27272a);
     this.grid.position.y = -1.19;
-    this.grid.material.opacity = 0.5;
+    this.grid.material.opacity = 0.35;
     this.grid.material.transparent = true;
     this.scene.add(this.grid);
 
@@ -201,11 +201,13 @@ class EngineApp {
         // Find which engine part group this mesh belongs to
         let hitObj = intersects[0].object;
         let matchedPart = null;
+        let matchedKey = null;
 
         while (hitObj && hitObj !== this.engineModel.root) {
           for (const key in this.engineModel.parts) {
             if (this.engineModel.parts[key].group === hitObj) {
               matchedPart = this.engineModel.parts[key];
+              matchedKey = key;
               break;
             }
           }
@@ -215,6 +217,9 @@ class EngineApp {
 
         if (matchedPart) {
           this.showPartInspection(matchedPart);
+          document.querySelectorAll('.component-item').forEach(item => {
+            item.classList.toggle('active', item.dataset.part === matchedKey);
+          });
           this.audio.playMechanicalClick();
         }
       }
@@ -386,49 +391,98 @@ class EngineApp {
       });
     }
 
-    // 10. Environment Theme Toggle (Two Themes: White & Black Only)
-    const themeButtons = document.querySelectorAll('.theme-btn');
-    themeButtons.forEach((btn) => {
+    // 10. Shadcn Tabs Navigation (3D Parts vs System Controls)
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+    tabBtns.forEach((btn) => {
       btn.addEventListener('click', () => {
-        themeButtons.forEach((b) => b.classList.remove('active'));
+        tabBtns.forEach((b) => b.classList.remove('active'));
+        tabContents.forEach((c) => c.classList.remove('active'));
         btn.classList.add('active');
-        const theme = btn.dataset.theme;
-        this.setAppTheme(theme);
+        const targetId = `tab-content-${btn.dataset.tab}`;
+        const targetContent = document.getElementById(targetId);
+        if (targetContent) targetContent.classList.add('active');
         this.audio.playMechanicalClick();
       });
     });
+
+    // 11. 3D Component Direct Click to Focus
+    const compItems = document.querySelectorAll('.component-item');
+    compItems.forEach((item) => {
+      item.addEventListener('click', () => {
+        const partKey = item.dataset.part;
+        this.focusOnPart(partKey);
+      });
+    });
+
+    // 12. Reset View to Full Engine View
+    const btnResetView = document.getElementById('btn-reset-part-view');
+    if (btnResetView) {
+      btnResetView.addEventListener('click', () => {
+        this.setCameraPreset('iso');
+        compItems.forEach((i) => i.classList.remove('active'));
+        const card = document.getElementById('part-info-card');
+        if (card) card.classList.add('hidden');
+        this.audio.playMechanicalClick();
+      });
+    }
   }
 
-  setAppTheme(theme) {
-    if (theme === 'black') {
-      document.body.classList.add('theme-black');
-      this.scene.background = new THREE.Color(0x0a0c10);
-      this.floorMat.color.set(0x0e1219);
-      this.floorMat.roughness = 0.85;
-      if (this.grid) {
-        this.grid.material.color.set(0x283244);
-        this.grid.material.opacity = 0.6;
-      }
-      if (this.ambientLight) this.ambientLight.intensity = 1.1;
-    } else { // 'white'
-      document.body.classList.remove('theme-black');
-      this.scene.background = new THREE.Color(0xffffff);
-      this.floorMat.color.set(0xf0f3f7);
-      this.floorMat.roughness = 0.65;
-      if (this.grid) {
-        this.grid.material.color.set(0xc8cfdb);
-        this.grid.material.opacity = 0.5;
-      }
-      if (this.ambientLight) this.ambientLight.intensity = 1.6;
+  /* ================================================================
+     DIRECT 3D COMPONENT FOCUS & SPEC INSPECTION
+     Animates camera to frame the selected component and opens spec card.
+     ================================================================ */
+  focusOnPart(partKey) {
+    const partViews = {
+      crankshaft: { target: new THREE.Vector3(0, 0, 0), camera: new THREE.Vector3(0.65, 0.3, 2.0) },
+      conRod: { target: new THREE.Vector3(0, 0.85, 0), camera: new THREE.Vector3(0.35, 0.95, 1.7) },
+      rodCap: { target: new THREE.Vector3(0, 0.05, 0), camera: new THREE.Vector3(0.4, 0.15, 1.6) },
+      piston: { target: new THREE.Vector3(0, 1.75, 0), camera: new THREE.Vector3(0.4, 1.9, 1.5) },
+      wristPin: { target: new THREE.Vector3(0, 1.45, 0), camera: new THREE.Vector3(0.35, 1.5, 1.4) },
+      rings: { target: new THREE.Vector3(0, 1.85, 0), camera: new THREE.Vector3(0.3, 1.95, 1.3) },
+      block: { target: new THREE.Vector3(0, 1.25, 0), camera: new THREE.Vector3(1.6, 1.4, 2.5) },
+      oilPan: { target: new THREE.Vector3(0, -0.65, 0), camera: new THREE.Vector3(1.1, -0.45, 1.9) },
+      cylinderHead: { target: new THREE.Vector3(0, 2.95, 0), camera: new THREE.Vector3(1.1, 3.2, 1.9) },
+      camshaft: { target: new THREE.Vector3(0, 3.52, 0), camera: new THREE.Vector3(0.2, 4.0, 1.6) },
+      intakeValve: { target: new THREE.Vector3(-0.35, 2.95, 0), camera: new THREE.Vector3(-0.65, 3.25, 1.3) },
+      exhaustValve: { target: new THREE.Vector3(0.35, 2.95, 0), camera: new THREE.Vector3(0.65, 3.25, 1.3) },
+      sparkPlug: { target: new THREE.Vector3(0, 3.0, 0), camera: new THREE.Vector3(0.0, 3.5, 1.3) }
+    };
+
+    const view = partViews[partKey];
+    if (view) {
+      this.animateCamera(view.camera, view.target);
     }
+
+    // Highlight active item in side panel
+    document.querySelectorAll('.component-item').forEach((item) => {
+      item.classList.toggle('active', item.dataset.part === partKey);
+    });
+
+    // Display technical specification popover
+    const part = this.engineModel.parts[partKey];
+    if (part) {
+      this.showPartInspection(part);
+    }
+
+    this.audio.playMechanicalClick();
+  }
+
+  setAppTheme(theme = 'black') {
+    document.body.classList.add('theme-black');
+    this.scene.background = new THREE.Color(0x09090b);
+    this.floorMat.color.set(0x0c0c0e);
+    this.floorMat.roughness = 0.85;
+    if (this.grid) {
+      this.grid.material.color.set(0x27272a);
+      this.grid.material.opacity = 0.35;
+    }
+    if (this.ambientLight) this.ambientLight.intensity = 1.2;
+    if (this.keyLight) this.keyLight.intensity = 3.2;
   }
 
   setBackgroundTheme(themeOrColor) {
-    if (themeOrColor === '#ffffff' || themeOrColor === 'white') {
-      this.setAppTheme('white');
-    } else {
-      this.setAppTheme('black');
-    }
+    this.setAppTheme('black');
   }
 
   setCameraPreset(preset) {
