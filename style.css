@@ -848,6 +848,11 @@ html, body {
   display: block;
 }
 
+/* Hide 2D UI Overlay in VR/AR Immersive Session (replaced by 3D in-VR floating HUD) */
+body.in-xr-mode .ui-overlay {
+  display: none !important;
+}
+
 /* ==========================================================================
    RESPONSIVE DESIGN FOR SMALLER SCREENS
    ========================================================================== */
