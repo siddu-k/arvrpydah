@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="Blueprint-accurate MTZ-80 Belarus tractor 3D model: D-240 diesel, 9F/2R gearbox, chevron rear wheels, enclosed cab, 3-point hitch, exploded view, WebXR AR/VR.">
+  <meta name="theme-color" content="#09090b">
+  <title>AERO-4 | MTZ-80 Tractor CAD 3D & Valvetrain</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23ffffff%22><path d=%22M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 17.93V15a3 3 0 0 0-2 0v4.93A8 8 0 0 1 4.07 13H9a3 3 0 0 0 0-2H4.07A8 8 0 0 1 11 4.07V9a3 3 0 0 0 2 0V4.07A8 8 0 0 1 19.93 11H15a3 3 0 0 0 0 2h4.93A8 8 0 0 1 13 19.93z%22/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body class="theme-black">
+  <div id="canvas-container"></div>
+  <div id="ar-toast" class="ar-toast">Aim device at a flat surface and tap to place the tractor.</div>
+
+  <div class="ui-overlay">
+    <header class="header-bar interactive">
+      <div class="brand-section">
+        <a href="../../index.html" class="btn btn-icon" title="Return to Models Dashboard" style="text-decoration:none; color:inherit;">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        </a>
+        <div class="brand-badge">AERO-4</div>
+        <div class="brand-titles">
+          <h1>MTZ-80 TRACTOR</h1>
+          <span class="brand-sub">BELARUS CLASS • BLUEPRINT CAD</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btn-audio" class="btn btn-icon" title="Toggle Diesel Audio">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+        </button>
+        <button id="btn-enter-ar" class="btn btn-icon" title="Enter AR (Pass-Through Tabletop)">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M7 2v2H3v4H1V4a2 2 0 0 1 2-2h4zm14 0a2 2 0 0 1 2 2v4h-2V4h-4V2h4zM3 20v-4H1v4a2 2 0 0 0 2 2h4v-2H3zm18 0h-4v2h4a2 2 0 0 0 2-2v-4h-2v4zM12 6a6 6 0 1 0 6 6 6 6 0 0 0-6-6zm0 10a4 4 0 1 1 4-4 4 4 0 0 1-4 4z"/></svg>
+        </button>
+        <button id="btn-enter-vr" class="btn btn-icon btn-primary" title="Enter Immersive 6-DoF VR">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M21.5 7h-19C1.1 7 0 8.1 0 9.5v5C0 15.9 1.1 17 2.5 17H7l2.5-3h5l2.5 3h4.5c1.4 0 2.5-1.1 2.5-2.5v-5C24 8.1 22.9 7 21.5 7zM6 14.5c-1.4 0-2.5-1.1-2.5-2.5s1.1-2.5 2.5-2.5 2.5 1.1 2.5 2.5-1.1 2.5-2.5 2.5zm12 0c-1.4 0-2.5-1.1-2.5-2.5s1.1-2.5 2.5-2.5 2.5 1.1 2.5 2.5-1.1 2.5-2.5 2.5z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="main-dashboard">
+      <!-- LEFT: TELEMETRY -->
+      <div class="panel interactive">
+        <div class="panel-header">
+          <span class="panel-title">TRACTOR TELEMETRY</span>
+          <button id="btn-play" class="btn btn-icon btn-primary active" title="Start / Stop Engine">
+            <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          </button>
+        </div>
+
+        <div class="tachometer-box">
+          <div class="tacho-dial">
+            <div class="tacho-arc"></div>
+            <div id="tacho-needle" class="tacho-needle"></div>
+            <div class="tacho-center-pin"></div>
+          </div>
+          <div class="rpm-readout"><span id="rpm-value" class="rpm-val">1,200 RPM</span></div>
+          <div class="rpm-readout"><span id="speed-readout" class="rpm-val" style="font-size:12px;color:#a1a1aa">8.0 km/h ground speed</span></div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label"><span>ENGINE RPM (D-240)</span></div>
+          <input type="range" id="rpm-slider" class="slider" min="0" max="2400" step="20" value="1200">
+        </div>
+
+        <div class="control-group">
+          <div class="control-label"><span>GROUND SPEED</span><span id="speed-value" class="control-val">8.0 km/h</span></div>
+          <input type="range" id="speed-slider" class="slider" min="0" max="35" step="0.5" value="8">
+        </div>
+
+        <div class="control-group">
+          <div class="control-label"><span>STEERING ANGLE</span><span id="steer-value" class="control-val">0°</span></div>
+          <input type="range" id="steer-slider" class="slider" min="-35" max="35" step="1" value="0">
+          <div class="control-label" style="font-size:10px;color:#71717a"><span>&#9664; LEFT</span><span>RIGHT &#9654;</span></div>
+        </div>
+
+        <div class="control-group">
+          <button id="btn-drive" class="btn btn-primary active" style="width:100%"><span>DRIVE: ON</span></button>
+        </div>
+
+        <div class="telemetry-grid">
+          <div class="stat-item"><div class="stat-label">GROUND SPEED</div><div id="hud-speed" class="stat-val">0.0 km/h</div></div>
+          <div class="stat-item"><div class="stat-label">ENGINE</div><div id="hud-rpm2" class="stat-val">1200 rpm</div></div>
+          <div class="stat-item"><div class="stat-label">STEERING</div><div id="hud-steer" class="stat-val">0°</div></div>
+          <div class="stat-item"><div class="stat-label">PTO SHAFT</div><div id="hud-pto" class="stat-val">405 rpm</div></div>
+        </div>
+
+        <div class="control-group">
+          <div class="theme-info-pill"><span class="theme-glow-dot"></span><span>3930 × 1970 × 2470 MM • WB 2450</span></div>
+        </div>
+      </div>
+
+      <!-- RIGHT: PARTS + SYSTEM -->
+      <div class="panel interactive panel-right">
+        <div class="panel-tabs">
+          <button id="tab-btn-components" class="tab-btn active" data-tab="components">
+            <svg viewBox="0 0 24 24" width="13" height="13"><path fill="currentColor" d="M12 2l-5.5 9h11z M12 22l5.5-9h-11z"/></svg>
+            <span>3D PARTS</span>
+          </button>
+          <button id="tab-btn-controls" class="tab-btn" data-tab="controls">
+            <svg viewBox="0 0 24 24" width="13" height="13"><path fill="currentColor" d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></svg>
+            <span>SYSTEM</span>
+          </button>
+        </div>
+
+        <div id="tab-content-components" class="tab-content active">
+          <div class="section-sub-header"><span>CLICK PART TO FOCUS</span><span class="badge-count">12 PARTS</span></div>
+          <div class="component-list" id="component-list">
+            <div class="component-item" data-part="hood"><div class="comp-icon-box">H</div><div class="comp-info"><div class="comp-title">Bonnet & Grille</div><div class="comp-sub">Pressed hood • Mesh • Lamps</div></div></div>
+            <div class="component-item" data-part="engine"><div class="comp-icon-box">E</div><div class="comp-info"><div class="comp-title">D-240 Diesel Engine</div><div class="comp-sub">4.75L 80hp • Radiator+Fan</div></div></div>
+            <div class="component-item" data-part="exhaust"><div class="comp-icon-box">X</div><div class="comp-info"><div class="comp-title">Exhaust & Air Cleaner</div><div class="comp-sub">Stack + rain cap + filter</div></div></div>
+            <div class="component-item" data-part="fuelTank"><div class="comp-icon-box">F</div><div class="comp-info"><div class="comp-title">Fuel Tank 100L</div><div class="comp-sub">Tank + cowl + lines</div></div></div>
+            <div class="component-item" data-part="cab"><div class="comp-icon-box">C</div><div class="comp-info"><div class="comp-title">Cab & Controls</div><div class="comp-sub">Glass • Seat • Wheel • Dash</div></div></div>
+            <div class="component-item" data-part="transmission"><div class="comp-icon-box">T</div><div class="comp-info"><div class="comp-title">Gearbox & Rear Axle</div><div class="comp-sub">9F/2R • Bull gears</div></div></div>
+            <div class="component-item" data-part="frontAxle"><div class="comp-icon-box">A</div><div class="comp-info"><div class="comp-title">Front Axle & Steering</div><div class="comp-sub">Pivot beam • ±35°</div></div></div>
+            <div class="component-item" data-part="rearWheels"><div class="comp-icon-box">R</div><div class="comp-info"><div class="comp-title">Rear Wheel LH 15.5-38</div><div class="comp-sub">Chevron lugs • 8-bolt</div></div></div>
+            <div class="component-item" data-part="rearWheelR"><div class="comp-icon-box">R</div><div class="comp-info"><div class="comp-title">Rear Wheel RH 15.5-38</div><div class="comp-sub">Drive • Ballasted rim</div></div></div>
+            <div class="component-item" data-part="frontWheels"><div class="comp-icon-box">W</div><div class="comp-info"><div class="comp-title">Front Wheels 9-20</div><div class="comp-sub">Ribbed • Steerable</div></div></div>
+            <div class="component-item" data-part="hitch"><div class="comp-icon-box">P</div><div class="comp-info"><div class="comp-title">Hitch & PTO 540</div><div class="comp-sub">Cat II • Drawbar • SMV</div></div></div>
+            <div class="component-item" data-part="ballast"><div class="comp-icon-box">B</div><div class="comp-info"><div class="comp-title">Ballast & Steps</div><div class="comp-sub">6 weights • Ladders</div></div></div>
+          </div>
+          <button id="btn-reset-part-view" class="btn btn-reset-view"><span>RESET TO FULL VIEW</span></button>
+        </div>
+
+        <div id="tab-content-controls" class="tab-content">
+          <div class="control-group">
+            <div class="control-label"><span>BODY MODE</span></div>
+            <div class="icon-button-row" style="grid-template-columns:repeat(3,1fr)">
+              <button class="btn btn-icon cut-mode-btn active" data-mode="solid" title="Full Solid Body" style="width:100%">SOLID</button>
+              <button class="btn btn-icon cut-mode-btn" data-mode="xray" title="X-Ray Transparent Body" style="width:100%">X-RAY</button>
+              <button class="btn btn-icon cut-mode-btn" data-mode="service" title="Service: Hood Open" style="width:100%">HOOD</button>
+            </div>
+          </div>
+          <div class="control-group">
+            <div class="control-label"><span>EXPLODE / ASSEMBLE</span><span id="explode-value" class="control-val">0%</span></div>
+            <div class="slider-with-icon">
+              <input type="range" id="explode-slider" class="slider" min="0" max="100" step="1" value="0">
+              <button id="btn-auto-explode" class="btn btn-icon" title="Auto Animate Exploded View">
+                <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+              </button>
+            </div>
+            <div class="explode-actions">
+              <button id="btn-assemble" class="btn btn-explode-action">ASSEMBLE</button>
+              <button id="btn-explode" class="btn btn-explode-action">EXPLODE</button>
+            </div>
+          </div>
+          <div class="control-group">
+            <div class="control-label"><span>CAMERA VIEWS</span></div>
+            <div class="icon-button-row">
+              <button class="btn btn-icon cam-preset-btn" data-view="iso" title="Isometric">ISO</button>
+              <button class="btn btn-icon cam-preset-btn" data-view="front" title="Front Grille">FRT</button>
+              <button class="btn btn-icon cam-preset-btn" data-view="cab" title="Cab Interior">CAB</button>
+              <button class="btn btn-icon cam-preset-btn" data-view="rear" title="Rear Hitch">RAR</button>
+            </div>
+          </div>
+          <div class="control-group">
+            <div class="theme-info-pill"><span class="theme-glow-dot"></span><span>BLUEPRINT MTZ-80 • 1 UNIT = 1 M</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="part-info-card" class="part-info-card hidden interactive">
+      <div class="part-card-header">
+        <span class="part-badge">COMPONENT SPECIFICATION</span>
+        <button id="btn-close-card" class="btn-close-card">✕</button>
+      </div>
+      <div id="part-name" class="part-title">D-240 Diesel Engine</div>
+      <div id="part-specs" class="part-specs-text">4.75 L NA diesel</div>
+    </div>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
